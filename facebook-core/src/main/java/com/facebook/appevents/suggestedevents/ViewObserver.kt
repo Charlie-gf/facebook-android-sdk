@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.suggestedevents
 
 import android.app.Activity
@@ -107,10 +108,7 @@ internal class ViewObserver private constructor(activity: Activity) :
     @JvmStatic
     fun stopTrackingActivity(activity: Activity) {
       val key = activity.hashCode()
-      observers[key]?.let {
-        observers.remove(key)
-        it.stopTracking()
-      }
+      observers.remove(key)?.stopTracking()
     }
   }
 }

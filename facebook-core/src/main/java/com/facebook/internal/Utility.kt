@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.internal
 
 import android.content.Context
@@ -65,8 +66,6 @@ import java.net.URLDecoder
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.text.DecimalFormat
-import java.util.Arrays
-import java.util.Collections
 import java.util.Date
 import java.util.Locale
 import java.util.Random
@@ -115,105 +114,6 @@ object Utility {
   private const val FACEBOOK_PROFILE_FIELDS = "id,name,first_name,middle_name,last_name"
   private const val INSTAGRAM_PROFILE_FIELDS = "id,name,profile_picture"
 
-  /**
-   * Each array represents a set of closed or open Range, like so: [0,10,50,60] - Ranges are {0-9},
-   * {50-59} [20] - Ranges are {20-} [30,40,100] - Ranges are {30-39}, {100-}
-   *
-   * All Ranges in the array have a closed lower bound. Only the last Range in each array may be
-   * open. It is assumed that the passed in arrays are sorted with ascending order. It is assumed
-   * that no two elements in a given are equal (i.e. no 0-length ranges)
-   *
-   * The method returns an intersect of the two passed in Range-sets
-   *
-   * @param range1 The first range
-   * @param range2 The second range
-   * @return The intersection of the two ranges.
-   */
-  @JvmStatic
-  fun intersectRanges(range1: IntArray?, range2: IntArray?): IntArray? {
-    if (range1 == null) {
-      return range2
-    } else if (range2 == null) {
-      return range1
-    }
-    val outputRange = IntArray(range1.size + range2.size)
-    var outputIndex = 0
-    var index1 = 0
-    var lower1: Int
-    var upper1: Int
-    var index2 = 0
-    var lower2: Int
-    var upper2: Int
-    while (index1 < range1.size && index2 < range2.size) {
-      var newRangeLower = Int.MIN_VALUE
-      var newRangeUpper = Int.MAX_VALUE
-      lower1 = range1[index1]
-      upper1 = Int.MAX_VALUE
-      lower2 = range2[index2]
-      upper2 = Int.MAX_VALUE
-      if (index1 < range1.size - 1) {
-        upper1 = range1[index1 + 1]
-      }
-      if (index2 < range2.size - 1) {
-        upper2 = range2[index2 + 1]
-      }
-      if (lower1 < lower2) {
-        if (upper1 > lower2) {
-          newRangeLower = lower2
-          if (upper1 > upper2) {
-            newRangeUpper = upper2
-            index2 += 2
-          } else {
-            newRangeUpper = upper1
-            index1 += 2
-          }
-        } else {
-          index1 += 2
-        }
-      } else {
-        if (upper2 > lower1) {
-          newRangeLower = lower1
-          if (upper2 > upper1) {
-            newRangeUpper = upper1
-            index1 += 2
-          } else {
-            newRangeUpper = upper2
-            index2 += 2
-          }
-        } else {
-          index2 += 2
-        }
-      }
-      if (newRangeLower != Int.MIN_VALUE) {
-        outputRange[outputIndex++] = newRangeLower
-        if (newRangeUpper != Int.MAX_VALUE) {
-          outputRange[outputIndex++] = newRangeUpper
-        } else {
-          // If we reach an unbounded/open range, then we know we're done.
-          break
-        }
-      }
-    }
-    return Arrays.copyOf(outputRange, outputIndex)
-  }
-
-  // Returns true iff all items in subset are in superset, treating null and
-  // empty collections as
-  // the same.
-  @JvmStatic
-  fun <T> isSubset(subset: Collection<T>?, superset: Collection<T>?): Boolean {
-    if (superset == null || superset.isEmpty()) {
-      return subset == null || subset.isEmpty()
-    }
-    val hash = HashSet(superset)
-    for (t in checkNotNull(subset)) {
-      if (!hash.contains(t)) {
-        return false
-      }
-    }
-    return true
-  }
-
   @JvmStatic
   fun <T> isNullOrEmpty(c: Collection<T>?): Boolean {
     return c == null || c.isEmpty()
@@ -237,29 +137,6 @@ object Utility {
     return if (isNullOrEmpty(s)) {
       valueIfNullOrEmpty
     } else s
-  }
-
-  @JvmStatic
-  fun <T> unmodifiableCollection(vararg ts: T): Collection<T> {
-    return Collections.unmodifiableCollection(Arrays.asList(*ts))
-  }
-
-  @JvmStatic
-  fun <T> arrayList(vararg ts: T): ArrayList<T> {
-    val arrayList = ArrayList<T>(ts.size)
-    for (t in ts) {
-      arrayList.add(t)
-    }
-    return arrayList
-  }
-
-  @JvmStatic
-  fun <T> hashSet(vararg ts: T): HashSet<T> {
-    val hashSet = HashSet<T>(ts.size)
-    for (t in ts) {
-      hashSet.add(t)
-    }
-    return hashSet
   }
 
   @JvmStatic
@@ -443,7 +320,7 @@ object Utility {
   @JvmStatic
   fun convertJSONObjectToHashMap(jsonObject: JSONObject): Map<String, Any> {
     val map = HashMap<String, Any>()
-    val keys = jsonObject.names()
+    val keys = jsonObject.names() ?: return map
     for (i in 0 until keys.length()) {
       var key: String
       try {
@@ -631,21 +508,6 @@ object Utility {
   }
 
   @JvmStatic
-  fun hasSameId(a: JSONObject?, b: JSONObject?): Boolean {
-    if (a == null || b == null || !a.has("id") || !b.has("id")) {
-      return false
-    }
-    if (a == b) {
-      return true
-    }
-    val idA = a.optString("id")
-    val idB = b.optString("id")
-    return if (idA == null || idB == null) {
-      false
-    } else idA == idB
-  }
-
-  @JvmStatic
   fun safeGetStringFromResponse(response: JSONObject?, propertyName: String?): String {
     return if (response != null) response.optString(propertyName, "") else ""
   }
@@ -660,11 +522,9 @@ object Utility {
     return response?.optJSONArray(propertyKey)
   }
 
-  @JvmStatic
-  fun clearCaches() {
-    ImageDownloader.clearCache()
-  }
-
+  @Deprecated(
+      "This method should not be used in Kotlin",
+      ReplaceWith("directoryOrFile?.deleteRecursively()"))
   @JvmStatic
   fun deleteDirectory(directoryOrFile: File?) {
     if (directoryOrFile === null || !directoryOrFile.exists()) {
@@ -679,17 +539,6 @@ object Utility {
       }
     }
     directoryOrFile.delete()
-  }
-
-  @JvmStatic
-  fun <T> asListNoNulls(vararg array: T): List<T> {
-    val result = ArrayList<T>()
-    for (t in array) {
-      if (t != null) {
-        result.add(t)
-      }
-    }
-    return result
   }
 
   @Throws(JSONException::class)
@@ -755,14 +604,24 @@ object Utility {
       params: JSONObject,
       attributionIdentifiers: AttributionIdentifiers?,
       anonymousAppDeviceGUID: String?,
-      limitEventUsage: Boolean
+      limitEventUsage: Boolean,
+      context: Context
   ) {
-    params.put("anon_id", anonymousAppDeviceGUID)
+    if (!FeatureManager.isEnabled(FeatureManager.Feature.ServiceUpdateCompliance)) {
+      params.put("anon_id", anonymousAppDeviceGUID)
+    }
     params.put("application_tracking_enabled", !limitEventUsage)
     params.put("advertiser_id_collection_enabled", FacebookSdk.getAdvertiserIDCollectionEnabled())
     if (attributionIdentifiers != null) {
+      if (FeatureManager.isEnabled(FeatureManager.Feature.ServiceUpdateCompliance)) {
+        appendAnonIdUnderCompliance(params, attributionIdentifiers, anonymousAppDeviceGUID, context)
+      }
       if (attributionIdentifiers.attributionId != null) {
-        params.put("attribution", attributionIdentifiers.attributionId)
+        if (FeatureManager.isEnabled(FeatureManager.Feature.ServiceUpdateCompliance)) {
+          appendAttributionIdUnderCompliance(params, attributionIdentifiers, context)
+        } else {
+          params.put("attribution", attributionIdentifiers.attributionId)
+        }
       }
       if (attributionIdentifiers.androidAdvertiserId != null) {
         params.put("advertiser_id", attributionIdentifiers.androidAdvertiserId)
@@ -936,35 +795,6 @@ object Utility {
   }
 
   @JvmStatic
-  fun <T> filter(target: List<T>?, predicate: Predicate<T>): List<T>? {
-    if (target == null) {
-      return null
-    }
-    val list: MutableList<T> = ArrayList()
-    for (item in target) {
-      if (predicate.apply(item)) {
-        list.add(item)
-      }
-    }
-    return if (list.size == 0) null else list
-  }
-
-  @JvmStatic
-  fun <T, K> map(target: List<T>?, mapper: Mapper<T, K>): List<K>? {
-    if (target == null) {
-      return null
-    }
-    val list: MutableList<K> = ArrayList()
-    for (item in target) {
-      val mappedItem: K? = mapper.apply(item)
-      if (mappedItem != null) {
-        list.add(mappedItem)
-      }
-    }
-    return if (list.size == 0) null else list
-  }
-
-  @JvmStatic
   fun getUriString(uri: Uri?): String? {
     return uri?.toString()
   }
@@ -1117,9 +947,13 @@ object Utility {
   private fun getGraphMeRequestWithCache(accessToken: String): GraphRequest {
     val parameters = Bundle()
     parameters.putString(
-        "fields", getProfileFieldsForGraphDomain(getCurrentTokenDomainWithDefault()))
+        GraphRequest.FIELDS_PARAM,
+        getProfileFieldsForGraphDomain(getCurrentTokenDomainWithDefault()))
     parameters.putString("access_token", accessToken)
-    return GraphRequest(null, "me", parameters, HttpMethod.GET, null)
+    val request = GraphRequest.newMeRequest(null, null)
+    request.parameters = parameters
+    request.httpMethod = HttpMethod.GET
+    return request
   }
 
   private fun getProfileFieldsForGraphDomain(graphDomain: String?): String {
@@ -1235,6 +1069,48 @@ object Utility {
 
   private fun convertBytesToGB(bytes: Double): Long {
     return Math.round(bytes / (1024.0 * 1024.0 * 1024.0))
+  }
+
+  private fun appendAnonIdUnderCompliance(
+      params: JSONObject,
+      attributionIdentifiers: AttributionIdentifiers,
+      anonymousAppDeviceGUID: String?,
+      context: Context
+  ) {
+    // TODO: change to Build.VERSION_CODES.S after we start building with API 31
+    if (Build.VERSION.SDK_INT >= 31 && isGooglePlayServicesAvailable(context)) {
+      if (!attributionIdentifiers.isTrackingLimited) {
+        params.put("anon_id", anonymousAppDeviceGUID)
+      }
+    } else {
+      params.put("anon_id", anonymousAppDeviceGUID)
+    }
+  }
+
+  private fun appendAttributionIdUnderCompliance(
+      params: JSONObject,
+      attributionIdentifiers: AttributionIdentifiers,
+      context: Context
+  ) {
+    // TODO: change to Build.VERSION_CODES.S after we start building with API 31
+    if (Build.VERSION.SDK_INT >= 31 && isGooglePlayServicesAvailable(context)) {
+      if (!attributionIdentifiers.isTrackingLimited) {
+        params.put("attribution", attributionIdentifiers.attributionId)
+      }
+    } else {
+      params.put("attribution", attributionIdentifiers.attributionId)
+    }
+  }
+
+  private fun isGooglePlayServicesAvailable(context: Context): Boolean {
+    val method =
+        getMethodQuietly(
+            "com.google.android.gms.common.GooglePlayServicesUtil",
+            "isGooglePlayServicesAvailable",
+            Context::class.java)
+            ?: return false
+    val connectionResult = invokeMethodQuietly(null, method, context)
+    return !(connectionResult !is Int || connectionResult != 0)
   }
 
   @Throws(JSONException::class)
@@ -1408,14 +1284,6 @@ object Utility {
       } catch (e: Exception) {}
       return false
     }
-
-  fun interface Predicate<T> {
-    fun apply(item: T): Boolean
-  }
-
-  fun interface Mapper<T, K> {
-    fun apply(item: T): K
-  }
 
   interface GraphMeRequestWithCacheCallback {
     fun onSuccess(userInfo: JSONObject?)

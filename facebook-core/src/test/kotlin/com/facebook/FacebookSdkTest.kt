@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook
 
 import android.content.Context
@@ -77,7 +78,7 @@ class FacebookSdkTest : FacebookPowerMockTestCase() {
     try {
       FacebookSdk.setExecutor(executor)
       FacebookSdk.getExecutor().execute(runnable)
-      val success = condition.block(5000)
+      val success = condition.block(5_000)
       assertThat(success).isTrue
     } finally {
       FacebookSdk.setExecutor(original)
@@ -123,7 +124,7 @@ class FacebookSdkTest : FacebookPowerMockTestCase() {
   fun testRequestCodeOffsetAfterInit() {
     FacebookSdk.setApplicationId("123456789")
     FacebookSdk.sdkInitialize(RuntimeEnvironment.application)
-    assertThatThrownBy { FacebookSdk.sdkInitialize(RuntimeEnvironment.application, 1000) }
+    assertThatThrownBy { FacebookSdk.sdkInitialize(RuntimeEnvironment.application, 1_000) }
         .isInstanceOf(FacebookException::class.java)
         .hasMessage(FacebookSdk.CALLBACK_OFFSET_CHANGED_AFTER_INIT)
   }
@@ -142,18 +143,18 @@ class FacebookSdkTest : FacebookPowerMockTestCase() {
   @Test
   fun testRequestCodeOffset() {
     FacebookSdk.setApplicationId("123456789")
-    FacebookSdk.sdkInitialize(RuntimeEnvironment.application, 1000)
-    assertThat(FacebookSdk.getCallbackRequestCodeOffset()).isEqualTo(1000)
+    FacebookSdk.sdkInitialize(RuntimeEnvironment.application, 1_000)
+    assertThat(FacebookSdk.getCallbackRequestCodeOffset()).isEqualTo(1_000)
   }
 
   @Test
   fun testRequestCodeRange() {
     FacebookSdk.setApplicationId("123456789")
-    FacebookSdk.sdkInitialize(RuntimeEnvironment.application, 1000)
-    assertThat(FacebookSdk.isFacebookRequestCode(1000)).isTrue
-    assertThat(FacebookSdk.isFacebookRequestCode(1099)).isTrue
+    FacebookSdk.sdkInitialize(RuntimeEnvironment.application, 1_000)
+    assertThat(FacebookSdk.isFacebookRequestCode(1_000)).isTrue
+    assertThat(FacebookSdk.isFacebookRequestCode(1_099)).isTrue
     assertThat(FacebookSdk.isFacebookRequestCode(999)).isFalse
-    assertThat(FacebookSdk.isFacebookRequestCode(1100)).isFalse
+    assertThat(FacebookSdk.isFacebookRequestCode(1_100)).isFalse
     assertThat(FacebookSdk.isFacebookRequestCode(0)).isFalse
   }
 

@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.internal
 
 import android.content.Intent
@@ -24,22 +25,22 @@ import androidx.test.core.app.ApplicationProvider
 import com.facebook.FacebookPowerMockTestCase
 import com.facebook.FacebookSdk
 import com.facebook.internal.CallbackManagerImpl.Companion.registerStaticCallback
+import com.nhaarman.mockitokotlin2.whenever
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import org.powermock.api.mockito.PowerMockito.mockStatic
-import org.powermock.api.mockito.PowerMockito.`when`
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
 
-@PrepareForTest(FacebookSdk::class, CallbackManagerImpl::class)
+@PrepareForTest(FacebookSdk::class)
 class CallbackManagerImplTest : FacebookPowerMockTestCase() {
   @Before
   fun before() {
     mockStatic(FacebookSdk::class.java)
-    `when`(FacebookSdk.getApplicationId()).thenReturn("123456789")
-    `when`(FacebookSdk.isInitialized()).thenReturn(true)
-    `when`(FacebookSdk.getApplicationContext())
+    whenever(FacebookSdk.getApplicationId()).thenReturn("123456789")
+    whenever(FacebookSdk.isInitialized()).thenReturn(true)
+    whenever(FacebookSdk.getApplicationContext())
         .thenReturn(ApplicationProvider.getApplicationContext())
     // Reset the static state every time so tests don't interfere with each other.
     Whitebox.setInternalState(
@@ -79,9 +80,7 @@ class CallbackManagerImplTest : FacebookPowerMockTestCase() {
     callbackManagerImpl.registerCallback(
         456,
         object : CallbackManagerImpl.Callback {
-          override fun onActivityResult(resultCode: Int, data: Intent?): Boolean {
-            return false
-          }
+          override fun onActivityResult(resultCode: Int, data: Intent?): Boolean = false
         })
     callbackManagerImpl.onActivityResult(123, 1, Intent())
     Assert.assertTrue(capturedResult)

@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.aam
 
 import android.app.Activity
@@ -69,8 +70,12 @@ internal class MetadataViewObserver private constructor(activity: Activity) :
   }
 
   override fun onGlobalFocusChanged(oldView: View?, newView: View?) {
-    oldView?.let { process(it) }
-    newView?.let { process(it) }
+    if (oldView != null) {
+      process(oldView)
+    }
+    if (newView != null) {
+      process(newView)
+    }
   }
 
   private fun process(view: View) {
@@ -108,7 +113,7 @@ internal class MetadataViewObserver private constructor(activity: Activity) :
       if (aroundTextIndicators == null) {
         aroundTextIndicators = getAroundViewIndicators(view)
       }
-      if (MetadataMatcher.matchIndicator(aroundTextIndicators, rule.keyRules)) {
+      if (matchIndicator(aroundTextIndicators, rule.keyRules)) {
         putUserData(userData, rule.name, normalizedText)
       }
     }
@@ -138,10 +143,7 @@ internal class MetadataViewObserver private constructor(activity: Activity) :
     @JvmStatic
     fun stopTrackingActivity(activity: Activity) {
       val key = activity.hashCode()
-      observers[key]?.let {
-        observers.remove(key)
-        it.stopTracking()
-      }
+      observers.remove(key)?.stopTracking()
     }
 
     private fun preNormalize(key: String, value: String): String {

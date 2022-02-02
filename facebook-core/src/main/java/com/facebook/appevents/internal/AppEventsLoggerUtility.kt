@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.internal
 
 import android.content.Context
@@ -57,7 +58,7 @@ object AppEventsLoggerUtility {
       publishParams.put("app_user_id", externalAnalyticsUserId)
     }
     setAppEventAttributionParameters(
-        publishParams, attributionIdentifiers, anonymousAppDeviceGUID, limitEventUsage)
+        publishParams, attributionIdentifiers, anonymousAppDeviceGUID, limitEventUsage, context)
 
     // The code to get all the Extended info is safe but just in case we can wrap the
     // whole call in its own try/catch block since some of the things it does might

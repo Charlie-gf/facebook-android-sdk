@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents
 
 import android.app.Application
@@ -69,11 +70,10 @@ class AppEventsLoggerTest : FacebookPowerMockTestCase() {
   @Before
   fun setupTest() {
     PowerMockito.mockStatic(FacebookSdk::class.java)
-    PowerMockito.`when`(FacebookSdk.isInitialized()).thenReturn(true)
-    PowerMockito.`when`(FacebookSdk.getApplicationId()).thenReturn(mockAppID)
-    PowerMockito.`when`(FacebookSdk.getApplicationContext())
-        .thenReturn(RuntimeEnvironment.application)
-    PowerMockito.`when`(FacebookSdk.getExecutor()).thenReturn(mockExecutor)
+    whenever(FacebookSdk.isInitialized()).thenReturn(true)
+    whenever(FacebookSdk.getApplicationId()).thenReturn(mockAppID)
+    whenever(FacebookSdk.getApplicationContext()).thenReturn(RuntimeEnvironment.application)
+    whenever(FacebookSdk.getExecutor()).thenReturn(mockExecutor)
     logger = mock()
     PowerMockito.whenNew(AppEventsLoggerImpl::class.java).withAnyArguments().thenReturn(logger)
     // Disable AppEventUtility.isMainThread since executor now runs in main thread
@@ -82,7 +82,7 @@ class AppEventsLoggerTest : FacebookPowerMockTestCase() {
     val mock: AppEventsLoggerImpl.Companion = spy()
     Whitebox.setInternalState(AppEventsLoggerImpl::class.java, "Companion", mock)
     PowerMockito.spy(AppEventsLoggerImpl::class.java)
-    PowerMockito.`when`(mock.getAnalyticsExecutor()).thenReturn(mockExecutor)
+    whenever(mock.getAnalyticsExecutor()).thenReturn(mockExecutor)
     PowerMockito.mockStatic(FetchedAppSettingsManager::class.java)
   }
 
@@ -148,7 +148,7 @@ class AppEventsLoggerTest : FacebookPowerMockTestCase() {
   fun testAutoLogAppEventsEnabled() {
     Whitebox.setInternalState(
         AppEventsLoggerImpl::class.java, "backgroundExecutor", mock<ScheduledThreadPoolExecutor>())
-    PowerMockito.`when`(FacebookSdk.getAutoLogAppEventsEnabled()).thenReturn(true)
+    whenever(FacebookSdk.getAutoLogAppEventsEnabled()).thenReturn(true)
     AppEventsLogger.initializeLib(FacebookSdk.getApplicationContext(), mockAppID)
     PowerMockito.verifyNew(AppEventsLoggerImpl::class.java)
         .withArguments(any(), eq(mockAppID), isNull())
@@ -158,7 +158,7 @@ class AppEventsLoggerTest : FacebookPowerMockTestCase() {
   fun testAutoLogAppEventsDisabled() {
     Whitebox.setInternalState(
         AppEventsLoggerImpl::class.java, "backgroundExecutor", mock<ScheduledThreadPoolExecutor>())
-    PowerMockito.`when`(FacebookSdk.getAutoLogAppEventsEnabled()).thenReturn(false)
+    whenever(FacebookSdk.getAutoLogAppEventsEnabled()).thenReturn(false)
     AppEventsLogger.initializeLib(FacebookSdk.getApplicationContext(), mockAppID)
     PowerMockito.verifyNew(AppEventsLoggerImpl::class.java, never())
         .withArguments(any(), any(), any())
@@ -207,7 +207,7 @@ class AppEventsLoggerTest : FacebookPowerMockTestCase() {
   fun testActivateApp() {
     val mockApplication: Application = mock()
     whenever(mockApplication.applicationContext).thenReturn(mockApplication)
-    PowerMockito.`when`(FacebookSdk.publishInstallAsync(any(), any())).thenCallRealMethod()
+    whenever(FacebookSdk.publishInstallAsync(any(), any())).thenCallRealMethod()
     AppEventsLogger.activateApp(mockApplication)
     verify(mockApplication, times(1)).registerActivityLifecycleCallbacks(any())
   }
@@ -215,7 +215,7 @@ class AppEventsLoggerTest : FacebookPowerMockTestCase() {
   @Test
   fun testSetPushNotificationsRegistrationId() {
     val mockNotificationId = "123"
-    PowerMockito.`when`(AppEventsLoggerImpl.setPushNotificationsRegistrationId(mockNotificationId))
+    whenever(AppEventsLoggerImpl.setPushNotificationsRegistrationId(mockNotificationId))
         .thenCallRealMethod()
     AppEventsLogger.setPushNotificationsRegistrationId(mockNotificationId)
   }

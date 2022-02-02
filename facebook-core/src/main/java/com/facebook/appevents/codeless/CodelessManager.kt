@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.codeless
 
 import android.app.Activity
@@ -97,8 +98,8 @@ object CodelessManager {
       return
     }
     CodelessMatcher.getInstance().remove(activity)
-    viewIndexer?.let { it.unschedule() }
-    sensorManager?.let { it.unregisterListener(viewIndexingTrigger) }
+    viewIndexer?.unschedule()
+    sensorManager?.unregisterListener(viewIndexingTrigger)
   }
 
   @JvmStatic
@@ -155,7 +156,7 @@ object CodelessManager {
       if (!isAppIndexingEnabled.get()) {
         deviceSessionID = null
       } else {
-        viewIndexer?.let { it.schedule() }
+        viewIndexer?.schedule()
       }
       isCheckingSession = false
     }

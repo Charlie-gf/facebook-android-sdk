@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook
 
 import android.app.Application
@@ -199,10 +200,7 @@ object FacebookSdk {
   }
 
   /** Indicates if we are in debug mode. */
-  @JvmStatic
-  fun isDebugEnabled(): Boolean {
-    return isDebugEnabledField
-  }
+  @JvmStatic fun isDebugEnabled(): Boolean = isDebugEnabledField
 
   /**
    * Used to enable or disable logging, and other debug features. Defaults to BuildConfig.DEBUG.
@@ -220,10 +218,7 @@ object FacebookSdk {
    *
    * @return if the legacy token upgrade is supported.
    */
-  @JvmStatic
-  fun isLegacyTokenUpgradeSupported(): Boolean {
-    return isLegacyTokenUpgradeSupported
-  }
+  @JvmStatic fun isLegacyTokenUpgradeSupported(): Boolean = isLegacyTokenUpgradeSupported
 
   /**
    * Setter for legacy token upgrade.
@@ -274,9 +269,7 @@ object FacebookSdk {
   @Synchronized
   @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)
   @JvmStatic
-  fun isFullyInitialized(): Boolean {
-    return isFullyInitialized
-  }
+  fun isFullyInitialized(): Boolean = isFullyInitialized
 
   /**
    * Gets the base Facebook domain to use when making Web Requests; in production code this will
@@ -286,10 +279,7 @@ object FacebookSdk {
    *
    * @return the Facebook Domain
    */
-  @JvmStatic
-  fun getFacebookDomain(): String {
-    return facebookDomain
-  }
+  @JvmStatic fun getFacebookDomain(): String = facebookDomain
 
   /**
    * Gets the base Instagram domain to use when making Web Requests; in production code this will
@@ -297,10 +287,7 @@ object FacebookSdk {
    *
    * @return the Instagram Domain
    */
-  @JvmStatic
-  fun getInstagramDomain(): String {
-    return instagramDomain
-  }
+  @JvmStatic fun getInstagramDomain(): String = instagramDomain
 
   /**
    * Sets the base Facebook domain to use when making Web requests. This defaults to "facebook.com",
@@ -734,9 +721,8 @@ object FacebookSdk {
         .apply()
   }
 
-  // Package private for testing only
   @JvmStatic
-  fun loadDefaultsFromMetadata(context: Context?) {
+  internal fun loadDefaultsFromMetadata(context: Context?) {
     if (context == null) {
       return
     }
@@ -871,9 +857,13 @@ object FacebookSdk {
    * @return the client token
    */
   @JvmStatic
-  fun getClientToken(): String? {
+  fun getClientToken(): String {
     Validate.sdkInitialized()
     return appClientToken
+        ?: throw FacebookException(
+            "A valid Facebook client token must be set in the " +
+                "AndroidManifest.xml or set by calling FacebookSdk.setClientToken " +
+                "before initializing the sdk.")
   }
 
   /**

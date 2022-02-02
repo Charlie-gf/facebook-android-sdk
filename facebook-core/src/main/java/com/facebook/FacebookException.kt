@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook
 
 import com.facebook.internal.FeatureManager
@@ -55,7 +56,7 @@ open class FacebookException : RuntimeException {
    * @param format the format string (see [java.util.Formatter.format])
    * @param args the list of arguments passed to the formatter.
    */
-  constructor(format: String?, vararg args: Any?) : this(format?.let { String.format(it, *args) })
+  constructor(format: String?, vararg args: Any?) : this(format?.format(*args))
 
   /**
    * Constructs a new FacebookException.

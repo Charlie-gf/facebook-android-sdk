@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.internal
 
 import android.content.Context
@@ -175,6 +176,7 @@ object FeatureManager {
     ErrorReport(0x00020200),
     AnrReport(0x00020300),
     Monitoring(0x00030000),
+    ServiceUpdateCompliance(0x00030100),
 
     // Features in LoginKit
     /** Essential of LoginKit */
@@ -214,6 +216,7 @@ object FeatureManager {
           IapLogging -> "IAPLogging"
           IapLoggingLib2 -> "IAPLoggingLib2"
           Monitoring -> "Monitoring"
+          ServiceUpdateCompliance -> "ServiceUpdateCompliance"
           Login -> "LoginKit"
           ChromeCustomTabsPrefetching -> "ChromeCustomTabsPrefetching"
           IgnoreAppSwitchToLoggedOut -> "IgnoreAppSwitchToLoggedOut"

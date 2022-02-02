@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook
 
 import android.content.Context
@@ -24,15 +25,30 @@ import android.graphics.Bitmap
 import android.location.Location
 import android.net.Uri
 import android.os.Bundle
+import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import com.facebook.internal.AttributionIdentifiers
+import com.facebook.internal.Logger
+import com.facebook.internal.ServerProtocol
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
+import java.io.BufferedInputStream
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
 import java.lang.IllegalArgumentException
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLDecoder
+import java.util.UUID
+import java.util.zip.GZIPInputStream
 import org.assertj.core.api.Assertions.assertThat
 import org.json.JSONObject
 import org.junit.Before
@@ -46,7 +62,6 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
   private val facebookGraphUrl = "graph.facebook.com"
   private val gamingGraphUrl = "graph.fb.gg"
   private val instagramGraphUrl = "graph.instagram.com"
-
   private val mockAppID = "1234"
   private val mockClientToken = "5678"
   private val mockTokenString = "EAAasdf"
@@ -54,19 +69,20 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
   private val mockInstagramTokenString = "IGasdf"
   private val mockAppTokenString = mockAppID + "|" + mockClientToken
   private val mockUserID = "1000"
+
   @Before
   override fun setup() {
     super.setup()
     PowerMockito.mockStatic(FacebookSdk::class.java)
-    PowerMockito.`when`(FacebookSdk.isInitialized()).thenReturn(true)
-    PowerMockito.`when`(FacebookSdk.getApplicationId()).thenReturn(mockAppID)
-    PowerMockito.`when`(FacebookSdk.getClientToken()).thenReturn(mockClientToken)
-    PowerMockito.`when`(FacebookSdk.isDebugEnabled()).thenReturn(false)
-    PowerMockito.`when`(FacebookSdk.getApplicationContext())
+    whenever(FacebookSdk.isInitialized()).thenReturn(true)
+    whenever(FacebookSdk.getApplicationId()).thenReturn(mockAppID)
+    whenever(FacebookSdk.getClientToken()).thenReturn(mockClientToken)
+    whenever(FacebookSdk.isDebugEnabled()).thenReturn(false)
+    whenever(FacebookSdk.getApplicationContext())
         .thenReturn(ApplicationProvider.getApplicationContext())
-    PowerMockito.`when`(FacebookSdk.getGraphDomain()).thenCallRealMethod()
-    PowerMockito.`when`(FacebookSdk.getFacebookDomain()).thenCallRealMethod()
-    PowerMockito.`when`(FacebookSdk.getGraphApiVersion()).thenCallRealMethod()
+    whenever(FacebookSdk.getGraphDomain()).thenCallRealMethod()
+    whenever(FacebookSdk.getFacebookDomain()).thenCallRealMethod()
+    whenever(FacebookSdk.getGraphApiVersion()).thenCallRealMethod()
     mockLoggedInWithTokenDomain("facebook")
   }
 
@@ -281,26 +297,79 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
     assertThat(request.graphPath).isEqualTo("me/photos")
   }
 
+  @Test(expected = FileNotFoundException::class)
+  fun `test create upload photo request with an invalid file`() {
+    val testFile = File("no_exist")
+    GraphRequest.newUploadPhotoRequest(null, "me/photos", testFile, null, null, null)
+  }
+
+  @Test
+  fun `test create upload photo request with a valid file`() {
+    val testFileContent = byteArrayOf(1, 2, 3, 4)
+    val testFilename = UUID.randomUUID().toString()
+    val testFile = File(testFilename)
+    testFile.deleteOnExit()
+    testFile.createNewFile()
+    testFile.writeBytes(testFileContent)
+
+    val request =
+        GraphRequest.newUploadPhotoRequest(null, "me/photos", testFile, "test caption", null, null)
+
+    val parameters = request.parameters
+    assertThat(parameters.containsKey("picture")).isTrue
+    val fileDescriptor = parameters.getParcelable<ParcelFileDescriptor>("picture")
+    val fileInputStream = ParcelFileDescriptor.AutoCloseInputStream(fileDescriptor)
+    val readContent = fileInputStream.readBytes()
+    assertThat(readContent).isEqualTo(testFileContent)
+    assertThat(parameters.getString("caption")).isEqualTo("test caption")
+    assertThat(request.graphPath).isEqualTo("me/photos")
+  }
+
+  @Test(expected = FacebookException::class)
+  fun `test create upload photo request with an invalid uri`() {
+    val httpUri = Uri.parse("https://facebook.com")
+    GraphRequest.newUploadPhotoRequest(null, "me/photos", httpUri, null, null, null)
+  }
+
+  @Test(expected = FileNotFoundException::class)
+  fun `test create upload photo request with an invalid file uri`() {
+    val fileUri = Uri.parse("file://no-exists")
+    GraphRequest.newUploadPhotoRequest(null, "me/photos", fileUri, null, null, null)
+  }
+
+  @Test
+  fun `test create upload photo request with a content uri`() {
+    val contentUri = Uri.parse("content://test_content_uri")
+
+    val request =
+        GraphRequest.newUploadPhotoRequest(null, "me/photos", contentUri, null, null, null)
+
+    val parameters = request.parameters
+    assertThat(parameters.containsKey("picture")).isTrue
+    assertThat(parameters.getParcelable<Uri>("picture")).isEqualTo(contentUri)
+    assertThat(request.graphPath).isEqualTo("me/photos")
+  }
+
   @Test
   fun testCreatePlacesSearchRequestWithLocation() {
     val location = Location("")
-    location.latitude = 47.6204
-    location.longitude = -122.3491
-    val request = GraphRequest.newPlacesSearchRequest(null, location, 1000, 50, null, null)
+    location.latitude = 47.6_204
+    location.longitude = -122.3_491
+    val request = GraphRequest.newPlacesSearchRequest(null, location, 1_000, 50, null, null)
     assertThat(request.httpMethod).isEqualTo(HttpMethod.GET)
     assertThat(request.graphPath).isEqualTo("search")
   }
 
   @Test
   fun testCreatePlacesSearchRequestWithSearchText() {
-    val request = GraphRequest.newPlacesSearchRequest(null, null, 1000, 50, "Starbucks", null)
+    val request = GraphRequest.newPlacesSearchRequest(null, null, 1_000, 50, "Starbucks", null)
     assertThat(request.httpMethod).isEqualTo(HttpMethod.GET)
     assertThat(request.graphPath).isEqualTo("search")
   }
 
   @Test(expected = FacebookException::class)
   fun testCreatePlacesSearchRequestRequiresLocationOrSearchText() {
-    GraphRequest.newPlacesSearchRequest(null, null, 1000, 50, null, null)
+    GraphRequest.newPlacesSearchRequest(null, null, 1_000, 50, null, null)
   }
 
   @Test
@@ -367,8 +436,7 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
         .thenReturn(null)
     Whitebox.setInternalState(
         AttributionIdentifiers::class.java, "Companion", mockAttributionIdentifiersCompanionObject)
-    PowerMockito.doReturn(false)
-        .`when`(FacebookSdk::class.java, "getLimitEventAndDataUsage", any<Context>())
+    whenever(FacebookSdk.getLimitEventAndDataUsage(any<Context>())).thenReturn(false)
     val expectedRequest =
         GraphRequest(
             null, "mockAppID/custom_audience_third_party_id", Bundle(), HttpMethod.GET, null)
@@ -379,20 +447,6 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
     assertThat(request.httpMethod).isEqualTo(expectedRequest.httpMethod)
     FacebookTestUtility.assertEqualContentsWithoutOrder(
         expectedRequest.parameters, request.parameters)
-  }
-
-  @Test
-  fun `test GraphRequest raises a warning if no client is set`() {
-    PowerMockito.`when`(FacebookSdk.getClientToken()).thenReturn(null)
-    PowerMockito.mockStatic(Log::class.java)
-    var capturedTag: String? = null
-    PowerMockito.`when`(Log.w(any(), any<String>())).thenAnswer {
-      capturedTag = it.arguments[0].toString()
-      0
-    }
-    val requestMe = GraphRequest(null, "TourEiffel")
-    GraphRequest.toHttpConnection(requestMe)
-    assertThat(capturedTag).isEqualTo(GraphRequest.TAG)
   }
 
   @Test
@@ -682,6 +736,80 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
     val requestUri = Uri.parse(request.urlForSingleRequest)
     assertThat(requestUri.getHost()).isEqualTo("graph.facebook.com")
     assertThat(requestUri.getQueryParameter("access_token")).isEqualTo(mockAppTokenString)
+  }
+
+  @Test
+  fun `test serializing request batch to url connection`() {
+    val pipedInputStream = PipedInputStream()
+    val pipedOutputStream = PipedOutputStream(pipedInputStream)
+    val mockConnection = mock<HttpURLConnection>()
+    whenever(mockConnection.outputStream).thenReturn(pipedOutputStream)
+    whenever(mockConnection.url).thenReturn(URL("https", "graph.facebook.com", 443, "testfile"))
+    whenever(mockConnection.requestMethod).thenReturn(HttpMethod.POST.name)
+    whenever(mockConnection.getRequestProperty(any())).thenReturn("test property value")
+    val requestBatch =
+        GraphRequestBatch(
+            GraphRequest.newPostRequest(
+                null, "testPostPath", JSONObject("{\"key\":\"value\"}"), null),
+            GraphRequest.newGraphPathRequest(null, "testGetPath", null))
+    GraphRequest.serializeToUrlConnection(requestBatch, mockConnection)
+    verify(mockConnection).requestMethod = HttpMethod.POST.name
+    val dataInputStream = BufferedInputStream(GZIPInputStream(pipedInputStream))
+    val data = dataInputStream.reader().readText()
+    val decodeData = URLDecoder.decode(data, "UTF-8")
+    // check requests are in the decoded data
+    assertThat(decodeData).contains("batch_app_id=$mockAppID")
+    assertThat(decodeData)
+        .contains("\"relative_url\":\"\\/${ServerProtocol.getDefaultAPIVersion()}\\/testPostPath")
+    assertThat(decodeData)
+        .contains("\"relative_url\":\"\\/${ServerProtocol.getDefaultAPIVersion()}\\/testGetPath")
+    assertThat(decodeData).contains("\"body\":\"key=value\"")
+  }
+
+  @Test
+  fun `test serializing bytearray attachment to url connection`() {
+    val pipedInputStream = PipedInputStream()
+    val pipedOutputStream = PipedOutputStream(pipedInputStream)
+    val mockConnection = mock<HttpURLConnection>()
+    whenever(mockConnection.outputStream).thenReturn(pipedOutputStream)
+    whenever(mockConnection.url).thenReturn(URL("https", "graph.facebook.com", 443, "testfile"))
+    whenever(mockConnection.requestMethod).thenReturn(HttpMethod.POST.name)
+    whenever(mockConnection.getRequestProperty(any())).thenReturn("test property value")
+    val request = GraphRequest.newPostRequest(null, "testPath", null, null)
+    request.parameters.putByteArray("attachment", "test attachment data".toByteArray())
+    val requestBatch = GraphRequestBatch(request)
+    GraphRequest.serializeToUrlConnection(requestBatch, mockConnection)
+    verify(mockConnection).requestMethod = HttpMethod.POST.name
+    val dataInputStream = BufferedInputStream((pipedInputStream))
+    val data = dataInputStream.reader().readText()
+    val decodeData = URLDecoder.decode(data, "UTF-8")
+    // check requests are in the decoded data
+    assertThat(decodeData).contains("test attachment data")
+  }
+
+  @Test
+  fun `test validating get requests with null or empty fields params will generate an error log`() {
+    val mockLoggerCompanion = mock<Logger.Companion>()
+    Whitebox.setInternalState(Logger::class.java, "Companion", mockLoggerCompanion)
+    val graphRequestWithNullFieldsParams = GraphRequest.newGraphPathRequest(null, "/test/", null)
+    graphRequestWithNullFieldsParams.parameters.remove(GraphRequest.FIELDS_PARAM)
+    val graphRequestWithEmptyFieldsParams = GraphRequest.newGraphPathRequest(null, "/test/", null)
+    graphRequestWithEmptyFieldsParams.parameters.putString(GraphRequest.FIELDS_PARAM, "")
+    GraphRequest.validateFieldsParamForGetRequests(
+        GraphRequestBatch(graphRequestWithNullFieldsParams, graphRequestWithEmptyFieldsParams))
+    verify(mockLoggerCompanion, times(2))
+        .log(eq(LoggingBehavior.DEVELOPER_ERRORS), eq(Log.WARN), any(), any())
+  }
+
+  @Test
+  fun `test validating get requests with correct fields params`() {
+    val mockLoggerCompanion = mock<Logger.Companion>()
+    Whitebox.setInternalState(Logger::class.java, "Companion", mockLoggerCompanion)
+    val graphRequest = GraphRequest.newGraphPathRequest(null, "/test/", null)
+    graphRequest.parameters.putString(GraphRequest.FIELDS_PARAM, "id,name")
+    GraphRequest.validateFieldsParamForGetRequests(GraphRequestBatch(graphRequest))
+    verify(mockLoggerCompanion, never())
+        .log(eq(LoggingBehavior.DEVELOPER_ERRORS), eq(Log.WARN), any(), any())
   }
 
   fun createAccessTokenForDomain(domain: String): AccessToken {

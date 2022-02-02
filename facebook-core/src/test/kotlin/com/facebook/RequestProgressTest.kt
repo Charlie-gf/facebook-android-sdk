@@ -23,6 +23,7 @@ package com.facebook
 import android.os.Handler
 import com.nhaarman.mockitokotlin2.any
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.times
 import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import org.junit.Assert
@@ -42,8 +43,8 @@ class RequestProgressTest : FacebookPowerMockTestCase() {
   @Before
   fun init() {
     PowerMockito.mockStatic(FacebookSdk::class.java)
-    PowerMockito.`when`(FacebookSdk.isInitialized()).thenReturn(true)
-    PowerMockito.`when`(FacebookSdk.getOnProgressThreshold()).thenReturn(100)
+    whenever(FacebookSdk.isInitialized()).thenReturn(true)
+    whenever(FacebookSdk.getOnProgressThreshold()).thenReturn(100)
     mockRequest = mock()
     mockRequestCallback =
         object : GraphRequest.OnProgressCallback {
@@ -89,5 +90,15 @@ class RequestProgressTest : FacebookPowerMockTestCase() {
     progress.addProgress(20)
     Assert.assertEquals(capturedProgress, 0)
     verify(mockHandler).post(any())
+  }
+
+  @Test
+  fun `test not to report if the progress is not added`() {
+    val progress = RequestProgress(mockHandler, mockRequest)
+    progress.addToMax(100)
+    progress.addProgress(20)
+    progress.reportProgress()
+    progress.reportProgress()
+    verify(mockHandler, times(1)).post(any())
   }
 }

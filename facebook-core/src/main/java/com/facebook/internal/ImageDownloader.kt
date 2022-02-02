@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.internal
 
 import android.graphics.Bitmap
@@ -131,9 +132,7 @@ object ImageDownloader {
   }
 
   @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-  fun getPendingRequests(): Map<RequestKey, DownloaderContext> {
-    return pendingRequests
-  }
+  fun getPendingRequests(): Map<RequestKey, DownloaderContext> = pendingRequests
 
   private fun enqueueCacheRead(
       request: ImageRequest,

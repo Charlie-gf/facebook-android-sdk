@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents
 
 import android.content.Context
@@ -40,7 +41,7 @@ internal class FacebookSDKJSInterface(private val context: Context?) {
               "Check your webview Pixel configuration")
       return
     }
-    val logger = InternalAppEventsLogger(context)
+    val logger = InternalAppEventsLogger.createInstance(context)
     val parameters = jsonStringToBundle(jsonString)
     parameters.putString(PARAMETER_FBSDK_PIXEL_REFERRAL, pixelId)
     logger.logEvent(eventName, parameters)

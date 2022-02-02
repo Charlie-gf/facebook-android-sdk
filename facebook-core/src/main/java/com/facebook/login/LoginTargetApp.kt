@@ -17,17 +17,22 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.login
 
 enum class LoginTargetApp(private val targetApp: String) {
   FACEBOOK("facebook"),
   INSTAGRAM("instagram");
 
-  override fun toString(): String {
-    return targetApp
-  }
+  override fun toString(): String = targetApp
 
   companion object {
+    /**
+     * Return the LoginTargetApp by given string
+     *
+     * @param stringValue
+     * @return LoginTargetApp default return LoginTargetApp.FACEBOOK
+     */
     @JvmStatic
     fun fromString(stringValue: String?): LoginTargetApp {
       for (targetApp in values()) {

@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook
 
 import android.content.Intent
@@ -33,6 +34,11 @@ internal constructor(
     get() = currentProfileField
     set(value) = setCurrentProfile(value, true)
 
+  /**
+   * load profile from cache and set it to current profile
+   *
+   * @return if successfully load profile
+   */
   fun loadCurrentProfile(): Boolean {
     val profile = profileCache.load()
     if (profile != null) {

@@ -28,6 +28,7 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.text.TextUtils;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import com.facebook.AccessToken;
@@ -45,10 +46,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-class LoginClient implements Parcelable {
+@VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
+public class LoginClient implements Parcelable {
   LoginMethodHandler[] handlersToTry;
   int currentHandler = -1;
   Fragment fragment;
@@ -183,10 +186,6 @@ class LoginClient implements Parcelable {
       if (!FacebookSdk.bypassAppSwitch && behavior.allowsKatanaAuth()) {
         handlers.add(new KatanaProxyLoginMethodHandler(this));
       }
-
-      if (!FacebookSdk.bypassAppSwitch && behavior.allowsFacebookLiteAuth()) {
-        handlers.add(new FacebookLiteLoginMethodHandler(this));
-      }
     }
 
     if (behavior.allowsCustomTabAuth()) {
@@ -233,7 +232,7 @@ class LoginClient implements Parcelable {
           LoginLogger.EVENT_PARAM_METHOD_RESULT_SKIPPED,
           null,
           null,
-          getCurrentHandler().methodLoggingExtras);
+          getCurrentHandler().getMethodLoggingExtras());
     }
 
     while (handlersToTry != null && currentHandler < (handlersToTry.length - 1)) {
@@ -330,7 +329,7 @@ class LoginClient implements Parcelable {
     // (in which case we already logged that).
     if (handler != null) {
       logAuthorizationMethodComplete(
-          handler.getNameForLogging(), outcome, handler.methodLoggingExtras);
+          handler.getNameForLogging(), outcome, handler.getMethodLoggingExtras());
     }
 
     if (loggingExtras != null) {
@@ -384,7 +383,9 @@ class LoginClient implements Parcelable {
       if (previousToken != null
           && newToken != null
           && previousToken.getUserId().equals(newToken.getUserId())) {
-        result = Result.createTokenResult(pendingRequest, pendingResult.token);
+        result =
+            Result.createCompositeTokenResult(
+                pendingRequest, pendingResult.token, pendingResult.authenticationToken);
       } else {
         result =
             Result.createErrorResult(
@@ -475,7 +476,7 @@ class LoginClient implements Parcelable {
     private Set<String> permissions;
     private final DefaultAudience defaultAudience;
     private final String applicationId;
-    private final String authId;
+    private String authId;
     private boolean isRerequest = false;
     private String deviceRedirectUriString;
     private String authType;
@@ -485,6 +486,10 @@ class LoginClient implements Parcelable {
     private final LoginTargetApp targetApp;
     private boolean isFamilyLogin = false;
     private boolean shouldSkipAccountDeduplication = false;
+    private String nonce;
+    private String codeVerifier;
+    private String codeChallenge;
+    private CodeChallengeMethod codeChallengeMethod;
 
     Request(
         LoginBehavior loginBehavior,
@@ -511,6 +516,32 @@ class LoginClient implements Parcelable {
         String applicationId,
         String authId,
         LoginTargetApp targetApp) {
+      this(
+          loginBehavior,
+          permissions,
+          defaultAudience,
+          authType,
+          applicationId,
+          authId,
+          targetApp,
+          null,
+          null,
+          null,
+          null);
+    }
+
+    Request(
+        LoginBehavior loginBehavior,
+        Set<String> permissions,
+        DefaultAudience defaultAudience,
+        String authType,
+        String applicationId,
+        String authId,
+        LoginTargetApp targetApp,
+        String nonce,
+        String codeVerifier,
+        String codeChallenge,
+        CodeChallengeMethod codeChallengeMethod) {
       this.loginBehavior = loginBehavior;
       this.permissions = permissions != null ? permissions : new HashSet<String>();
       this.defaultAudience = defaultAudience;
@@ -518,6 +549,14 @@ class LoginClient implements Parcelable {
       this.applicationId = applicationId;
       this.authId = authId;
       this.targetApp = targetApp;
+      if (Utility.isNullOrEmpty(nonce)) {
+        this.nonce = UUID.randomUUID().toString();
+      } else {
+        this.nonce = nonce;
+      }
+      this.codeVerifier = codeVerifier;
+      this.codeChallenge = codeChallenge;
+      this.codeChallengeMethod = codeChallengeMethod;
     }
 
     Set<String> getPermissions() {
@@ -547,6 +586,10 @@ class LoginClient implements Parcelable {
 
     String getAuthId() {
       return authId;
+    }
+
+    void setAuthId(String authId) {
+      this.authId = authId;
     }
 
     boolean isRerequest() {
@@ -626,6 +669,22 @@ class LoginClient implements Parcelable {
       return targetApp == LoginTargetApp.INSTAGRAM;
     }
 
+    public String getNonce() {
+      return nonce;
+    }
+
+    public String getCodeVerifier() {
+      return codeVerifier;
+    }
+
+    public String getCodeChallenge() {
+      return codeChallenge;
+    }
+
+    public CodeChallengeMethod getCodeChallengeMethod() {
+      return codeChallengeMethod;
+    }
+
     private Request(Parcel parcel) {
       String enumValue = parcel.readString();
       this.loginBehavior = enumValue != null ? LoginBehavior.valueOf(enumValue) : null;
@@ -646,6 +705,14 @@ class LoginClient implements Parcelable {
       this.targetApp = enumValue != null ? LoginTargetApp.valueOf(enumValue) : null;
       this.isFamilyLogin = parcel.readByte() != 0;
       this.shouldSkipAccountDeduplication = parcel.readByte() != 0;
+      this.nonce = parcel.readString();
+      this.codeVerifier = parcel.readString();
+      this.codeChallenge = parcel.readString();
+      String codeChallengeMethodEnumVal = parcel.readString();
+      this.codeChallengeMethod =
+          codeChallengeMethodEnumVal != null
+              ? CodeChallengeMethod.valueOf(codeChallengeMethodEnumVal)
+              : null;
     }
 
     @Override
@@ -669,6 +736,10 @@ class LoginClient implements Parcelable {
       dest.writeString(targetApp != null ? targetApp.name() : null);
       dest.writeByte((byte) (isFamilyLogin ? 1 : 0));
       dest.writeByte((byte) (shouldSkipAccountDeduplication ? 1 : 0));
+      dest.writeString(nonce);
+      dest.writeString(codeVerifier);
+      dest.writeString(codeChallenge);
+      dest.writeString(codeChallengeMethod != null ? codeChallengeMethod.name() : null);
     }
 
     public static final Parcelable.Creator<Request> CREATOR =
@@ -761,7 +832,14 @@ class LoginClient implements Parcelable {
         @Nullable String errorType,
         @Nullable String errorDescription,
         @Nullable String errorCode) {
-      String message = TextUtils.join(": ", Utility.asListNoNulls(errorType, errorDescription));
+      ArrayList<String> messageParts = new ArrayList<>();
+      if (errorType != null) {
+        messageParts.add(errorType);
+      }
+      if (errorDescription != null) {
+        messageParts.add(errorDescription);
+      }
+      String message = TextUtils.join(": ", messageParts);
       return new Result(request, Code.ERROR, null, message, errorCode);
     }
 

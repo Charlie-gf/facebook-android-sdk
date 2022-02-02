@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.internal
 
 import com.facebook.FacebookSdk
@@ -216,7 +217,7 @@ class WorkQueueTest : FacebookTestCase() {
             }) {
           // Sleep
           try {
-            Thread.sleep(n / 4.toLong())
+            Thread.sleep(n / 4L)
           } catch (e: InterruptedException) {}
         } else if (n <
             trackThisWeight.let {

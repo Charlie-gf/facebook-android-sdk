@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.internal
 
 import android.content.Context
@@ -28,6 +29,7 @@ import androidx.annotation.RestrictTo
 import androidx.annotation.VisibleForTesting
 import com.facebook.FacebookSdk
 import com.facebook.GraphRequest
+import com.facebook.internal.Utility.isNullOrEmpty
 import com.facebook.internal.gatekeeper.GateKeeper
 import com.facebook.internal.gatekeeper.GateKeeperRuntimeCache
 import java.util.concurrent.ConcurrentHashMap
@@ -52,7 +54,7 @@ object FetchedAppGateKeepersManager {
   private const val APPLICATION_GATEKEEPER_EDGE = "mobile_sdk_gk"
   private const val APPLICATION_GATEKEEPER_FIELD = "gatekeepers"
   private const val APPLICATION_GRAPH_DATA = "data"
-  private const val APPLICATION_FIELDS = "fields"
+  private const val APPLICATION_FIELDS = GraphRequest.FIELDS_PARAM
   private const val APPLICATION_PLATFORM = "platform"
   private const val APPLICATION_SDK_VERSION = "sdk_version"
   private val isLoading = AtomicBoolean(false)
@@ -226,8 +228,7 @@ object FetchedAppGateKeepersManager {
     appGateKeepersParams.putString(APPLICATION_FIELDS, APPLICATION_GATEKEEPER_FIELD)
     val request =
         GraphRequest.newGraphPathRequest(
-            null, String.format("%s/%s", applicationId, APPLICATION_GATEKEEPER_EDGE), null)
-    request.setSkipClientToken(true)
+            null, String.format("app/%s", APPLICATION_GATEKEEPER_EDGE), null)
     request.parameters = appGateKeepersParams
     return request.executeAndWait().jsonObject ?: JSONObject()
   }

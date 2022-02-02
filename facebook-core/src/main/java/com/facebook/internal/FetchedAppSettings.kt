@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.internal
 
 import android.net.Uri
@@ -52,9 +53,7 @@ class FetchedAppSettings(
     val restrictiveDataSetting: String?
 ) {
 
-  fun supportsImplicitLogging(): Boolean {
-    return supportsImplicitLogging
-  }
+  fun supportsImplicitLogging(): Boolean = supportsImplicitLogging
 
   class DialogFeatureConfig
   private constructor(

@@ -35,6 +35,7 @@ import com.facebook.core.BuildConfig
 import com.facebook.internal.FetchedAppGateKeepersManager.queryAppGateKeepers
 import com.facebook.internal.InternalSettings.isUnityApp
 import com.facebook.internal.SmartLoginOption.Companion.parseOptions
+import com.facebook.internal.Utility.isNullOrEmpty
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicReference
@@ -90,7 +91,7 @@ object FetchedAppSettingsManager {
           APP_SETTING_RESTRICTIVE_EVENT_FILTER_FIELD,
           APP_SETTING_APP_EVENTS_AAM_RULE,
           SUGGESTED_EVENTS_SETTING)
-  private const val APPLICATION_FIELDS = "fields"
+  private const val APPLICATION_FIELDS = GraphRequest.FIELDS_PARAM
   private val fetchedAppSettings: MutableMap<String, FetchedAppSettings> = ConcurrentHashMap()
   private val loadingState = AtomicReference(FetchAppSettingState.NOT_LOADED)
   private val fetchedAppSettingsCallbacks = ConcurrentLinkedQueue<FetchedAppSettingsCallback>()
@@ -292,10 +293,10 @@ object FetchedAppSettingsManager {
       appSettingFields.add(SDK_UPDATE_MESSAGE)
     }
     appSettingsParams.putString(APPLICATION_FIELDS, TextUtils.join(",", appSettingFields))
-    val request = GraphRequest.newGraphPathRequest(null, applicationId, null)
+    val request = GraphRequest.newGraphPathRequest(null, "app", null)
     request.setForceApplicationRequest(true)
-    request.setSkipClientToken(true)
     request.parameters = appSettingsParams
+
     return request.executeAndWait().jsonObject ?: JSONObject()
   }
 

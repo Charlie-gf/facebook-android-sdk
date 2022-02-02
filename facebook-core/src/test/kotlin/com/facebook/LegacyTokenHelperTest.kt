@@ -2,6 +2,7 @@ package com.facebook
 
 import android.os.Bundle
 import com.facebook.internal.Utility
+import com.nhaarman.mockitokotlin2.whenever
 import org.json.JSONObject
 import org.junit.Assert
 import org.junit.Before
@@ -17,17 +18,17 @@ class LegacyTokenHelperTest : FacebookPowerMockTestCase() {
   fun init() {
     PowerMockito.mockStatic(FacebookSdk::class.java)
     PowerMockito.mockStatic(Utility::class.java)
-    PowerMockito.`when`(FacebookSdk.isInitialized()).thenReturn(true)
-    PowerMockito.`when`(FacebookSdk.isFullyInitialized()).thenReturn(true)
+    whenever(FacebookSdk.isInitialized()).thenReturn(true)
+    whenever(FacebookSdk.isFullyInitialized()).thenReturn(true)
     val json = JSONObject("{\"id\":\"swag\"}")
-    PowerMockito.`when`(Utility.awaitGetGraphMeRequestWithCache(anyString())).thenReturn(json)
+    whenever(Utility.awaitGetGraphMeRequestWithCache(anyString())).thenReturn(json)
   }
 
   @Test
   fun `test legacy token helper`() {
-    val permissions: Set<String> = Utility.hashSet("stream_publish", "go_outside_and_play")
-    val declinedPermissions: Set<String> = Utility.hashSet("no you may not", "no soup for you")
-    val expiredPermissions: Set<String> = Utility.hashSet("expired", "oh no")
+    val permissions: Set<String> = hashSetOf("stream_publish", "go_outside_and_play")
+    val declinedPermissions: Set<String> = hashSetOf("no you may not", "no soup for you")
+    val expiredPermissions: Set<String> = hashSetOf("expired", "oh no")
     val token = "AnImaginaryTokenValue"
     val later = FacebookTestUtility.nowPlusSeconds(60)
     val earlier = FacebookTestUtility.nowPlusSeconds(-60)

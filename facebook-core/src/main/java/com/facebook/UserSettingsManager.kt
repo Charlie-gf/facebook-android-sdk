@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook
 
 import android.content.Context
@@ -45,7 +46,7 @@ internal object UserSettingsManager {
       (7 * 24 * 60 * 60 * 1000 // Millisecond
           ).toLong()
   private const val ADVERTISER_ID_KEY = "advertiser_id"
-  private const val APPLICATION_FIELDS = "fields"
+  private const val APPLICATION_FIELDS = GraphRequest.FIELDS_PARAM
   private val autoInitEnabled = UserSetting(true, FacebookSdk.AUTO_INIT_ENABLED_PROPERTY)
   private val autoLogAppEventsEnabled =
       UserSetting(true, FacebookSdk.AUTO_LOG_APP_EVENTS_ENABLED_PROPERTY)
@@ -148,10 +149,11 @@ internal object UserSettingsManager {
             val codelessSettingsParams = Bundle()
             codelessSettingsParams.putString(ADVERTISER_ID_KEY, advertiserId)
             codelessSettingsParams.putString(APPLICATION_FIELDS, EVENTS_CODELESS_SETUP_ENABLED)
-            val codelessRequest = newGraphPathRequest(null, FacebookSdk.getApplicationId(), null)
-            codelessRequest.setSkipClientToken(true)
+
+            val codelessRequest = newGraphPathRequest(null, "app", null)
             codelessRequest.parameters = codelessSettingsParams
             val response = codelessRequest.executeAndWait().getJSONObject()
+
             if (response != null) {
               codelessSetupEnabled.value = response.optBoolean(EVENTS_CODELESS_SETUP_ENABLED, false)
               codelessSetupEnabled.lastTS = currTime
@@ -170,7 +172,7 @@ internal object UserSettingsManager {
       val jsonObject = JSONObject()
       jsonObject.put(VALUE, userSetting.value)
       jsonObject.put(LAST_TIMESTAMP, userSetting.lastTS)
-      userSettingPref.edit().putString(userSetting.key, jsonObject.toString()).commit()
+      userSettingPref.edit().putString(userSetting.key, jsonObject.toString()).apply()
       logIfSDKSettingsChanged()
     } catch (e: Exception) {
       logd(TAG, e)
@@ -242,7 +244,7 @@ internal object UserSettingsManager {
     bitmask = bitmask or ((if (monitorEnabled.getValue()) 1 else 0) shl bit++)
     val previousBitmask = userSettingPref.getInt(USER_SETTINGS_BITMASK, 0)
     if (previousBitmask != bitmask) {
-      userSettingPref.edit().putInt(USER_SETTINGS_BITMASK, bitmask).commit()
+      userSettingPref.edit().putInt(USER_SETTINGS_BITMASK, bitmask).apply()
       var initialBitmask = 0
       var usageBitmask = 0
       try {

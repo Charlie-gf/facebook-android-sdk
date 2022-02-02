@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.ml
 
 import android.content.Context
@@ -24,6 +25,7 @@ import android.os.Bundle
 import android.text.TextUtils
 import androidx.annotation.RestrictTo
 import com.facebook.FacebookSdk
+import com.facebook.GraphRequest
 import com.facebook.GraphRequest.Companion.newGraphPathRequest
 import com.facebook.appevents.AppEventsConstants
 import com.facebook.appevents.integrity.IntegrityManager
@@ -169,11 +171,9 @@ object ModelManager {
     val appSettingFields =
         arrayOf(USE_CASE_KEY, VERSION_ID_KEY, ASSET_URI_KEY, RULES_URI_KEY, THRESHOLD_KEY)
     val appSettingsParams = Bundle()
-    appSettingsParams.putString("fields", TextUtils.join(",", appSettingFields))
-    val graphRequest =
-        newGraphPathRequest(
-            null, String.format(SDK_MODEL_ASSET, FacebookSdk.getApplicationId()), null)
-    graphRequest.setSkipClientToken(true)
+    appSettingsParams.putString(GraphRequest.FIELDS_PARAM, TextUtils.join(",", appSettingFields))
+
+    val graphRequest = newGraphPathRequest(null, "app/model_asset", null)
     graphRequest.parameters = appSettingsParams
     val rawResponse = graphRequest.executeAndWait().getJSONObject() ?: return null
     return parseRawJsonObject(rawResponse)

@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook
 
 import android.os.Parcel
@@ -239,9 +240,7 @@ private constructor(
       false // errorIsTransient
       )
 
-  override fun describeContents(): Int {
-    return 0
-  }
+  override fun describeContents(): Int = 0
 
   /** An enum that represents the Facebook SDK classification for the error that occurred. */
   enum class Category {
@@ -285,6 +284,13 @@ private constructor(
     private const val ERROR_IS_TRANSIENT_KEY = "is_transient"
     internal val HTTP_RANGE_SUCCESS = Range(200, 299)
 
+    /**
+     * Check Response and create error if necessary
+     *
+     * @param singleResult jsonObject result
+     * @param batchResult bach call result
+     * @param connection
+     */
     @JvmStatic
     fun checkResponseAndCreateError(
         singleResult: JSONObject,

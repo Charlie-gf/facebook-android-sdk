@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.internal
 
 import android.content.Intent
@@ -61,7 +62,11 @@ class CallbackManagerImpl : CallbackManager {
     DeviceShare(8),
     GamingFriendFinder(9),
     GamingGroupIntegration(10),
-    Referral(11);
+    Referral(11),
+    GamingContextCreate(12),
+    GamingContextSwitch(13),
+    GamingContextChoose(14),
+    TournamentShareDialog(15);
 
     fun toRequestCode(): Int {
       return FacebookSdk.getCallbackRequestCodeOffset() + offset

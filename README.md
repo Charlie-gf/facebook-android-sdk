@@ -63,22 +63,22 @@ include the appropriate dependency (or dependencies) listed below in your `app/b
 ```gradle
 dependencies {
     // Facebook Core only (Analytics)
-    implementation 'com.facebook.android:facebook-core:11.1.0'
+    implementation 'com.facebook.android:facebook-core:latest.release'
 
     // Facebook Login only
-    implementation 'com.facebook.android:facebook-login:11.1.0'
+    implementation 'com.facebook.android:facebook-login:latest.release'
 
     // Facebook Share only
-    implementation 'com.facebook.android:facebook-share:11.1.0'
+    implementation 'com.facebook.android:facebook-share:latest.release'
 
     // Facebook Messenger only
-    implementation 'com.facebook.android:facebook-messenger:11.1.0'
+    implementation 'com.facebook.android:facebook-messenger:latest.release'
 
     // Facebook App Links only
-    implementation 'com.facebook.android:facebook-applinks:11.1.0'
+    implementation 'com.facebook.android:facebook-applinks:latest.release'
 
     // Facebook Android SDK (everything)
-    implementation 'com.facebook.android:facebook-android-sdk:11.1.0'
+    implementation 'com.facebook.android:facebook-android-sdk:latest.release'
 }
 ```
 
@@ -107,12 +107,12 @@ See the [SECURITY POLICY](SECURITY.md) for more info on our bug bounty program.
 CONTRIBUTING
 -------------
 We are able to accept contributions to the Facebook SDK for Android. To contribute please do the following.
-- Follow the instructions in the [CONTRIBUTING.md](https://github.com/facebook/facebook-android-sdk/blob/master/CONTRIBUTING.md).
-- Submit your pull request to the [master](https://github.com/facebook/facebook-android-sdk/tree/master) branch. This allows us to merge your change into our internal master and then push out the change in the next release.
+- Follow the instructions in the [CONTRIBUTING.md](https://github.com/facebook/facebook-android-sdk/blob/main/CONTRIBUTING.md).
+- Submit your pull request to the [main](https://github.com/facebook/facebook-android-sdk/tree/main) branch. This allows us to merge your change into our internal main and then push out the change in the next release.
 
 LICENSE
 -------
-Except as otherwise noted, the Facebook SDK for Android is licensed under the Facebook Platform License (https://github.com/facebook/facebook-android-sdk/blob/master/LICENSE.txt).
+Except as otherwise noted, the Facebook SDK for Android is licensed under the Facebook Platform License (https://github.com/facebook/facebook-android-sdk/blob/main/LICENSE.txt).
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
 

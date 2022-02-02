@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.internal
 
 import android.util.Log
@@ -158,9 +159,8 @@ class Logger(behavior: LoggingBehavior, tag: String) {
   }
 
   init {
-    Validate.notNullOrEmpty(tag, "tag")
     this.behavior = behavior
-    this.tag = LOG_TAG_BASE + tag
+    this.tag = LOG_TAG_BASE + Validate.notNullOrEmpty(tag, "tag")
     contents = StringBuilder()
   }
 }

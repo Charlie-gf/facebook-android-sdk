@@ -29,6 +29,7 @@ project.ext.description = 'Facebook Common Android SDK'
 project.ext.url = 'https://github.com/facebook/facebook-android-sdk'
 
 dependencies {
+    def kotlin_ver = project.ext.kotlinVersion
     // Facebook Dependencies
     api project(':facebook-core')
     // Support Dependencies
@@ -36,9 +37,34 @@ dependencies {
     implementation "androidx.appcompat:appcompat:${project.ext.androidxVersion}"
     implementation "androidx.cardview:cardview:${project.ext.androidxCardviewVersion}"
     implementation "androidx.browser:browser:${project.ext.androidxBrowserVersion}"
+    implementation("androidx.activity:activity:${project.ext.androidxActivityVersion}")
+    implementation("androidx.fragment:fragment:${project.ext.androidxFragmentVersion}")
 
     // Third-party Dependencies
     implementation 'com.google.zxing:core:3.3.3'
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_ver"
+
+    // Unit Tests
+    testImplementation project(":facebook-testutil")
+    testImplementation "junit:junit:$junitVersion"
+    testImplementation 'org.robolectric:robolectric:4.4'
+    testImplementation 'androidx.test:core:1.0.0'
+
+    testImplementation "org.mockito:mockito-inline:2.26.0"
+    testImplementation "com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0"
+
+    def powerMockVersion = '2.0.2'
+    testImplementation "org.powermock:powermock-core:$powerMockVersion"
+    testImplementation "org.powermock:powermock-api-mockito2:$powerMockVersion"
+    testImplementation "org.powermock:powermock-module-junit4:$powerMockVersion"
+    testImplementation "org.powermock:powermock-module-junit4-rule:$powerMockVersion"
+    testImplementation "org.powermock:powermock-classloading-xstream:$powerMockVersion"
+    testImplementation 'org.assertj:assertj-core:3.15.0'
+
+
+    testImplementation "com.android.installreferrer:installreferrer:1.0"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_ver"
 }
 
 android {
@@ -61,14 +87,37 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    sourceSets {
+        test.java.srcDirs += 'src/test/kotlin'
+    }
+
+    testOptions {
+        unitTests.all {
+            jvmArgs '-XX:MaxPermSize=1024m'
+            maxHeapSize = "4096m"
+        }
+        unitTests.includeAndroidResources true
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    if (System.getenv("SANDCASTLE") == "1") {
+        testOptions {
+            unitTests.all {
+                systemProperty 'robolectric.dependency.repo.url', 'https://maven.thefacebook.com/nexus/content/repositories/central/'
+                systemProperty 'robolectric.dependency.repo.id', 'central'
+                systemProperty "java.net.preferIPv6Addresses", "true"
+                systemProperty "java.net.preferIPv4Stack", "false"
+            }
         }
     }
 }

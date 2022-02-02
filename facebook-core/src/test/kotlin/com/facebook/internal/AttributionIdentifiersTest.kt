@@ -20,43 +20,56 @@
 
 package com.facebook.internal
 
+import android.content.ContentResolver
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.pm.ProviderInfo
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.facebook.FacebookPowerMockTestCase
 import com.facebook.FacebookSdk
 import com.nhaarman.mockitokotlin2.any
-import org.junit.Assert
+import com.nhaarman.mockitokotlin2.anyOrNull
+import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.whenever
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
-import org.mockito.ArgumentMatchers.anyString
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.internal.WhiteboxImpl
 
-@PrepareForTest(FacebookSdk::class, Utility::class, AttributionIdentifiers::class, Looper::class)
+@PrepareForTest(
+    FacebookSdk::class, Utility::class, Looper::class, FacebookSignatureValidator::class)
 class AttributionIdentifiersTest : FacebookPowerMockTestCase() {
   private lateinit var mockMainLooper: Looper
   private lateinit var mockId: AttributionIdentifiers
   private lateinit var mockContext: Context
   private lateinit var mockPackageManager: PackageManager
+  private lateinit var mockAttributionId: String
+
   @Before
   fun init() {
     PowerMockito.mockStatic(FacebookSdk::class.java)
-    PowerMockito.`when`(FacebookSdk.isInitialized()).thenReturn(true)
-    PowerMockito.`when`(FacebookSdk.getApplicationContext())
+    whenever(FacebookSdk.isInitialized()).thenReturn(true)
+    whenever(FacebookSdk.getApplicationContext())
         .thenReturn(ApplicationProvider.getApplicationContext())
     PowerMockito.mockStatic(Looper::class.java)
     mockMainLooper = PowerMockito.mock(Looper::class.java)
-    PowerMockito.`when`(Looper.getMainLooper()).thenReturn(mockMainLooper)
-    PowerMockito.spy(AttributionIdentifiers::class.java)
-    PowerMockito.spy(Utility::class.java)
+    whenever(Looper.getMainLooper()).thenReturn(mockMainLooper)
+    PowerMockito.mockStatic(Utility::class.java)
 
     mockId = PowerMockito.mock(AttributionIdentifiers::class.java)
     mockContext = PowerMockito.mock(Context::class.java)
     mockPackageManager = PowerMockito.mock(PackageManager::class.java)
-    PowerMockito.`when`(mockContext.packageManager).thenReturn(mockPackageManager)
+    whenever(mockContext.packageManager).thenReturn(mockPackageManager)
+
+    // bypass all signature validation for unit test
+    PowerMockito.mockStatic(FacebookSignatureValidator::class.java)
+    whenever(FacebookSignatureValidator.validateSignature(anyOrNull(), anyOrNull()))
+        .thenReturn(true)
+
     AttributionIdentifiers.cachedIdentifiers = null
   }
 
@@ -66,46 +79,65 @@ class AttributionIdentifiersTest : FacebookPowerMockTestCase() {
         PowerMockito.mock(AttributionIdentifiers.Companion::class.java)
     WhiteboxImpl.setInternalState(
         AttributionIdentifiers::class.java, "Companion", mockAttributionIdentifierCompanion)
-    PowerMockito.`when`(mockAttributionIdentifierCompanion.isTrackingLimited(any()))
-        .thenCallRealMethod()
-    PowerMockito.`when`(mockAttributionIdentifierCompanion.getAttributionIdentifiers(mockContext))
+    whenever(mockAttributionIdentifierCompanion.isTrackingLimited(any())).thenCallRealMethod()
+    whenever(mockAttributionIdentifierCompanion.getAttributionIdentifiers(mockContext))
         .thenReturn(mockId)
 
-    PowerMockito.`when`(mockId.isTrackingLimited).thenReturn(true)
-    Assert.assertTrue(AttributionIdentifiers.isTrackingLimited(mockContext))
-    PowerMockito.`when`(mockId.isTrackingLimited).thenReturn(false)
-    Assert.assertFalse(AttributionIdentifiers.isTrackingLimited(mockContext))
+    whenever(mockId.isTrackingLimited).thenReturn(true)
+    assertThat(AttributionIdentifiers.isTrackingLimited(mockContext)).isTrue
+    whenever(mockId.isTrackingLimited).thenReturn(false)
+    assertThat(AttributionIdentifiers.isTrackingLimited(mockContext)).isFalse
   }
 
   @Test
   fun `test get attribution id on main thread`() {
-    PowerMockito.`when`(Looper.myLooper()).thenReturn(mockMainLooper)
-    PowerMockito.whenNew(AttributionIdentifiers::class.java).withNoArguments().thenReturn(mockId)
-    Assert.assertNull(AttributionIdentifiers.getAttributionIdentifiers(mockContext))
+    whenever(Looper.myLooper()).thenReturn(mockMainLooper)
+    assertThat(AttributionIdentifiers.getAttributionIdentifiers(mockContext)).isNull()
   }
 
   @Test
-  fun `test return new identifier if not google play available`() {
+  fun `test return new identifier from attribution id provider if not google play available`() {
     val newLooper = PowerMockito.mock(Looper::class.java)
-    PowerMockito.`when`(Looper.myLooper()).thenReturn(newLooper)
+    whenever(Looper.myLooper()).thenReturn(newLooper)
+    whenever(Utility.getMethodQuietly(any<String>(), any<String>(), any())).thenReturn(null)
+    setMockContextWithAttributionIdProvider()
 
-    PowerMockito.whenNew(AttributionIdentifiers::class.java).withNoArguments().thenReturn(mockId)
-    PowerMockito.`when`(Utility.getMethodQuietly(anyString(), anyString(), any())).thenReturn(null)
     val obtainedId = AttributionIdentifiers.getAttributionIdentifiers(mockContext)
-    Assert.assertEquals(mockId, obtainedId)
-    Assert.assertEquals(mockId, AttributionIdentifiers.cachedIdentifiers)
+    assertThat(obtainedId?.attributionId).isEqualTo(mockAttributionId)
+    assertThat(obtainedId).isEqualTo(AttributionIdentifiers.cachedIdentifiers)
   }
 
   @Test
-  fun `test return new identifier if bindService throws SecurityException`() {
+  fun `test return new identifier from attribution id provider if bindService throws SecurityException`() {
     val newLooper = PowerMockito.mock(Looper::class.java)
-    PowerMockito.`when`(Looper.myLooper()).thenReturn(newLooper)
+    whenever(Looper.myLooper()).thenReturn(newLooper)
+    whenever(mockContext.bindService(any(), any(), any())).thenThrow(SecurityException())
+    whenever(Utility.getMethodQuietly(any<String>(), any<String>(), any())).thenReturn(null)
+    setMockContextWithAttributionIdProvider()
 
-    PowerMockito.`when`(mockContext.bindService(any(), any(), any())).thenThrow(SecurityException())
-    PowerMockito.`when`(Utility.getMethodQuietly(anyString(), anyString(), any())).thenReturn(null)
-    PowerMockito.whenNew(AttributionIdentifiers::class.java).withNoArguments().thenReturn(mockId)
     val obtainedId = AttributionIdentifiers.getAttributionIdentifiers(mockContext)
-    Assert.assertEquals(mockId, obtainedId)
-    Assert.assertEquals(mockId, AttributionIdentifiers.cachedIdentifiers)
+    assertThat(obtainedId?.attributionId).isEqualTo(mockAttributionId)
+    assertThat(obtainedId).isEqualTo(AttributionIdentifiers.cachedIdentifiers)
+  }
+
+  private fun setMockContextWithAttributionIdProvider() {
+    mockAttributionId = "aid123456789"
+    val mockAttributionIdProviderInfo = ProviderInfo()
+    mockAttributionIdProviderInfo.packageName = "com.facebook.katana"
+    val debugApplicationInfo = ApplicationInfo()
+    debugApplicationInfo.flags = debugApplicationInfo.flags or ApplicationInfo.FLAG_DEBUGGABLE
+    val mockContentResolver = mock<ContentResolver>()
+    val mockCursor = mock<android.database.Cursor>()
+    whenever(mockCursor.getColumnIndex(any())).thenReturn(0)
+    whenever(mockCursor.getString(0)).thenReturn(mockAttributionId)
+    whenever(mockCursor.moveToFirst()).thenReturn(true)
+    whenever(mockContext.applicationInfo).thenReturn(debugApplicationInfo)
+    whenever(
+            mockPackageManager.resolveContentProvider(
+                AttributionIdentifiers.Companion.ATTRIBUTION_ID_CONTENT_PROVIDER, 0))
+        .thenReturn(mockAttributionIdProviderInfo)
+    whenever(mockContext.contentResolver).thenReturn(mockContentResolver)
+    whenever(mockContentResolver.query(any(), any(), anyOrNull(), anyOrNull(), anyOrNull()))
+        .thenReturn(mockCursor)
   }
 }

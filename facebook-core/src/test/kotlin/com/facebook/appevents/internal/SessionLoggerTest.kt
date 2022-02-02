@@ -1,17 +1,23 @@
-/**
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved. <p> You are hereby granted a
- * non-exclusive, worldwide, royalty-free license to use, copy, modify, and distribute this software
- * in source code or binary form for use in connection with the web services and APIs provided by
- * Facebook. <p> As with any software that integrates with the Facebook platform, your use of this
- * software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be included in all copies
- * or substantial portions of the software. <p> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY
- * OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
+/*
+ * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ *
+ * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
+ * copy, modify, and distribute this software in source code or binary form for use
+ * in connection with the web services and APIs provided by Facebook.
+ *
+ * As with any software that integrates with the Facebook platform, your use of
+ * this software is subject to the Facebook Developer Principles and Policies
+ * [http://developers.facebook.com/policy/]. This copyright notice shall be
+ * included in all copies or substantial portions of the software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.internal
 
 import android.os.Bundle
@@ -19,16 +25,23 @@ import android.text.format.DateUtils
 import com.facebook.FacebookPowerMockTestCase
 import com.facebook.appevents.AppEventsConstants
 import com.facebook.appevents.InternalAppEventsLogger
-import java.util.*
+import com.nhaarman.mockitokotlin2.never
+import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.whenever
+import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.*
-import org.mockito.Mockito.never
-import org.mockito.Mockito.verify
-import org.powermock.api.mockito.PowerMockito.*
-import org.powermock.api.mockito.PowerMockito.`when` as whenCalled
+import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.anyDouble
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentMatchers.same
+import org.powermock.api.mockito.PowerMockito.doNothing
+import org.powermock.api.mockito.PowerMockito.mock
+import org.powermock.api.mockito.PowerMockito.mockStatic
+import org.powermock.api.mockito.PowerMockito.verifyNew
+import org.powermock.api.mockito.PowerMockito.whenNew
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
 
@@ -50,7 +63,7 @@ class SessionLoggerTest : FacebookPowerMockTestCase() {
   fun init() {
     doubleArgumentCaptor = ArgumentCaptor.forClass(Double::class.java)
     mockSessionInfo = mock(SessionInfo::class.java)
-    whenCalled(mockSessionInfo.sessionLength).thenReturn(10L)
+    whenever(mockSessionInfo.sessionLength).thenReturn(10L)
     Whitebox.setInternalState(mockSessionInfo, "sessionLastEventTime", sessionLastEventTime)
     Whitebox.setInternalState(mockSessionInfo, "diskRestoreTime", diskRestoreTime)
 
@@ -66,8 +79,7 @@ class SessionLoggerTest : FacebookPowerMockTestCase() {
         .thenReturn(mockInternalAppEventsLogger)
 
     mockStatic(SessionLogger::class.java)
-    whenCalled(
-            SessionLogger.logDeactivateApp(anyString(), any(SessionInfo::class.java), anyString()))
+    whenever(SessionLogger.logDeactivateApp(anyString(), any(SessionInfo::class.java), anyString()))
         .thenCallRealMethod()
   }
 
@@ -81,7 +93,7 @@ class SessionLoggerTest : FacebookPowerMockTestCase() {
   fun `logDeactivateApp when sessionInfo is not null and sessionLength is negative`() {
     val expectedValueToSum = 0.0
     val sessionLengthNegative = -1L
-    whenCalled(mockSessionInfo.sessionLength).thenReturn(sessionLengthNegative)
+    whenever(mockSessionInfo.sessionLength).thenReturn(sessionLengthNegative)
 
     SessionLogger.logDeactivateApp(activityName, mockSessionInfo, appId)
     verifyNew(Bundle::class.java).withNoArguments()

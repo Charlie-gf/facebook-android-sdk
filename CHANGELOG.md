@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Set Java source and target compatibility to 1.8 (Java 8). All apps that integrate with Facebook Android SDK should also set source and compatibility to 1.8 or above.
+
+## [12.3.0] - 2022-01-04
+
+### Added
+- Avoid tokenless requests if the client token is presented. Tokenless request support will be removed in v13.0.
+
+### Deprecated
+- Fblite Login is deprecated.
+- Internal utility methods on collections are deprecated and will be replaced by `kotlin.collections`.
+
+### Fixed
+- Fixed reauthorization of data access.
+- Add fields parameters for login GET requests to remove warning messages.
+
+## [12.2.0] - 2021-11-29
+
+### Added
+- Added parsing entry intent to look for gaming payload and tournament data for user coming from FB surface. Gaming tournament feature is available for selected partners now.
+- Added data processing options to crash/error report.
+
+### Fixed
+- On Android 12 and above, AppEvents will send attribution ID and anonymous ID if GMS is supported and isTrackingLimited is OFF. On Android 11 and below, nothing is changed. This feature will be turned on after Google Play Store starts the enforcement of the new policy.
+
+## [12.1.0] - 2021-11-01
+
+### Fixed
+- Fixed a bug that causes multiple login intents to launch when the user has previously authorized the app and is logging in with the `openid` scope.
+
+### Added
+- Adds Tournaments for native games, this feature is only available for select partners.
+
+## [12.0.1] - 2021-10-12
+
+### Added
+- Added AuthenticationToken Cache to enhance OIDC experience. NOTE: This feature is currently in beta testing and not broadly available to developers
+
+## [12.0.0] - 2021-10-04
+
+### Changed
+- `com.facebook.bolts.AppLinkResolver` will only receive nonnull parameters and return nonnull values. `com.facebook.bolts.Capture` is removed.
+- Removed deprecated functions in `com.facebook.appevents.AppEventsLogger`
+- Removed deprecated function `ViewIndexer.sendToServerUnity(String)`
+- Login and share kits now fully supports AndroidX Activity Result APIs. No need to override the `onActivityResult()` if you're passing activity/fragment from `androidx.activity` v1.2.0+ or `androidx.fragment` v1.3.0+ as the context to `LoginButton` and `ShareButton`.
+
+### Added
+- Added the ability to perform login based on OpenID Connect standard. NOTE: This feature is currently in beta testing and not broadly available to developers
+
+## [11.3.0] - 2021-09-06
+
+### Added
+- Add Custom Updates for Cloud Games
+### Fixed
+- Fixed Login Connect support in CCT and Webview
+
 ## [11.2.0] - 2021-08-02
 
 ### Added
@@ -335,6 +391,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- Links -->
 
 [Unreleased]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-6.0.0...HEAD
+[12.3.0]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-12.2.0...sdk-version-12.3.0
+[12.2.0]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-12.1.0...sdk-version-12.2.0
+[12.1.0]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-12.0.1...sdk-version-12.1.0
+[12.0.1]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-12.0.0...sdk-version-12.0.1
+[12.0.0]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-11.3.0...sdk-version-12.0.0
+[11.3.0]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-11.2.0...sdk-version-11.3.0
 [11.2.0]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-11.1.1...sdk-version-11.2.0
 [11.1.1]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-11.1.0...sdk-version-11.1.1
 [11.1.0]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-11.0.0...sdk-version-11.1.0
@@ -377,4 +439,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [5.0.0]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-4.41.0...sdk-version-5.0.0
 [4.41.0]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-4.40.0...sdk-version-4.41.0
 [4.40.0]: https://github.com/facebook/facebook-android-sdk/compare/sdk-version-4.39.0...sdk-version-4.40.0
-

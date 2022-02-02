@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.codeless
 
 import android.app.Activity
@@ -115,7 +116,7 @@ class ViewIndexer(activity: Activity) {
     try {
       getExecutor().execute {
         try {
-          indexingTimer?.let { it.cancel() }
+          indexingTimer?.cancel()
           previousDigest = null
           val timer = Timer()
           timer.scheduleAtFixedRate(
@@ -133,17 +134,12 @@ class ViewIndexer(activity: Activity) {
   fun unschedule() {
     activityReference.get() ?: return
     try {
-      indexingTimer?.let { it.cancel() }
+      indexingTimer?.cancel()
 
       indexingTimer = null
     } catch (e: Exception) {
       Log.e(TAG, "Error unscheduling indexing job", e)
     }
-  }
-
-  @Deprecated("Plase use sendToServerUnityInstance and sendToServerUnity will be removed soon.")
-  fun sendToServerUnity(tree: String) {
-    instance?.sendToServer(tree)
   }
 
   private fun sendToServer(tree: String) {
@@ -162,6 +158,12 @@ class ViewIndexer(activity: Activity) {
             })
   }
 
+  /**
+   * Process graph request
+   *
+   * @param request graphRequest to process
+   * @param currentDigest
+   */
   fun processRequest(request: GraphRequest?, currentDigest: String?) {
     if (request == null) {
       return
@@ -216,9 +218,14 @@ class ViewIndexer(activity: Activity) {
     private const val REQUEST_TYPE = "request_type"
     private var instance: ViewIndexer? = null
 
+    /**
+     * Build current app index request and process it
+     *
+     * @param tree current view tree
+     */
     @JvmStatic
     fun sendToServerUnityInstance(tree: String) {
-      instance?.let { it.sendToServer(tree) }
+      instance?.sendToServer(tree)
     }
 
     @RestrictTo(RestrictTo.Scope.LIBRARY_GROUP)

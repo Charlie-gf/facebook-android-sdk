@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook
 
 import android.content.Context
@@ -77,7 +78,6 @@ import kotlin.collections.Map
 import kotlin.collections.MutableMap
 import kotlin.collections.set
 import kotlin.collections.toList
-import kotlin.collections.toTypedArray
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -201,7 +201,6 @@ class GraphRequest {
       field = value ?: HttpMethod.GET
     }
 
-  private var skipClientToken = false
   private var forceApplicationRequest = false
   private var overriddenURL: String? = null
 
@@ -460,13 +459,11 @@ class GraphRequest {
     fun newUploadPhotoRequest(
         accessToken: AccessToken?,
         graphPath: String?,
-        image: Bitmap?,
+        image: Bitmap,
         caption: String?,
         params: Bundle?,
         callback: Callback?
     ): GraphRequest {
-      var graphPath = graphPath
-      graphPath = getDefaultPhotoPathIfNull(graphPath)
       val parameters = Bundle()
       if (params != null) {
         parameters.putAll(params)
@@ -475,7 +472,8 @@ class GraphRequest {
       if (caption != null && caption.isNotEmpty()) {
         parameters.putString(CAPTION_PARAM, caption)
       }
-      return GraphRequest(accessToken, graphPath, parameters, HttpMethod.POST, callback)
+      return GraphRequest(
+          accessToken, getDefaultPhotoPathIfNull(graphPath), parameters, HttpMethod.POST, callback)
     }
 
     /**
@@ -497,13 +495,11 @@ class GraphRequest {
     fun newUploadPhotoRequest(
         accessToken: AccessToken?,
         graphPath: String?,
-        file: File?,
+        file: File,
         caption: String?,
         params: Bundle?,
         callback: Callback?
     ): GraphRequest {
-      var graphPath = graphPath
-      graphPath = getDefaultPhotoPathIfNull(graphPath)
       val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
       val parameters = Bundle()
       if (params != null) {
@@ -513,7 +509,8 @@ class GraphRequest {
       if (caption != null && caption.isNotEmpty()) {
         parameters.putString(CAPTION_PARAM, caption)
       }
-      return GraphRequest(accessToken, graphPath, parameters, HttpMethod.POST, callback)
+      return GraphRequest(
+          accessToken, getDefaultPhotoPathIfNull(graphPath), parameters, HttpMethod.POST, callback)
     }
 
     /**
@@ -529,9 +526,10 @@ class GraphRequest {
      * success or error conditions, can be null
      * @return a Request that is ready to execute
      * @throws FileNotFoundException if the Uri does not exist
+     * @throws FacebookException if the Uri is not a file or a content Uri
      */
     @JvmStatic
-    @Throws(FileNotFoundException::class)
+    @Throws(FileNotFoundException::class, FacebookException::class)
     fun newUploadPhotoRequest(
         accessToken: AccessToken?,
         graphPath: String?,
@@ -540,8 +538,6 @@ class GraphRequest {
         params: Bundle?,
         callback: Callback?
     ): GraphRequest {
-      var graphPath = graphPath
-      graphPath = getDefaultPhotoPathIfNull(graphPath)
       if (isFileUri(photoUri)) {
         return newUploadPhotoRequest(
             accessToken, graphPath, File(photoUri.path), caption, params, callback)
@@ -556,7 +552,8 @@ class GraphRequest {
       if (caption != null && caption.isNotEmpty()) {
         parameters.putString(CAPTION_PARAM, caption)
       }
-      return GraphRequest(accessToken, graphPath, parameters, HttpMethod.POST, callback)
+      return GraphRequest(
+          accessToken, getDefaultPhotoPathIfNull(graphPath), parameters, HttpMethod.POST, callback)
     }
 
     /**
@@ -1089,35 +1086,16 @@ class GraphRequest {
     }
 
     @JvmStatic
-    internal fun shouldWarnOnMissingFieldsParam(request: GraphRequest): Boolean {
-      // null implies latest version
-      var version = request.version ?: return true
-      if (version.isEmpty()) {
-        return true
-      }
-      if (version.startsWith("v")) {
-        version = version.substring(1)
-      }
-      val versionParts = version.split("\\.".toRegex()).toTypedArray()
-      // We should warn on missing "fields" params for API 2.4 and above
-      return versionParts.size >= 2 && versionParts[0].toInt() > 2 ||
-          versionParts[0].toInt() >= 2 && versionParts[1].toInt() >= 4
-    }
-
-    @JvmStatic
     internal fun validateFieldsParamForGetRequests(requests: GraphRequestBatch) {
       // validate that the GET requests all have a "fields" param
       for (request in requests) {
-        if (HttpMethod.GET == request.httpMethod && shouldWarnOnMissingFieldsParam(request)) {
-          if (!request.parameters.containsKey(FIELDS_PARAM) ||
-              isNullOrEmpty(request.parameters.getString(FIELDS_PARAM))) {
+        if (HttpMethod.GET == request.httpMethod) {
+          if (isNullOrEmpty(request.parameters.getString(FIELDS_PARAM))) {
             log(
                 LoggingBehavior.DEVELOPER_ERRORS,
                 Log.WARN,
                 "Request",
-                "starting with Graph API v2.4, GET requests for /%s should contain an" +
-                    " explicit \"fields\" parameter.",
-                request.graphPath ?: "")
+                "GET requests for /${request.graphPath?:""} should contain an explicit \"fields\" parameter.")
           }
         }
       }
@@ -1448,13 +1426,6 @@ class GraphRequest {
   }
 
   /** This is an internal function that is not meant to be used by developers. */
-  @Deprecated(
-      "Starting in v13, the SDK will require a client token to be set before making GraphAPI calls.")
-  fun setSkipClientToken(skipClientToken: Boolean) {
-    this.skipClientToken = skipClientToken
-  }
-
-  /** This is an internal function that is not meant to be used by developers. */
   fun setForceApplicationRequest(forceOverride: Boolean) {
     this.forceApplicationRequest = forceOverride
   }
@@ -1511,9 +1482,8 @@ class GraphRequest {
   }
 
   private fun addCommonParameters() {
-    val accessToken = this.accessToken
     val parameters = this.parameters
-    if (!skipClientToken && shouldForceClientTokenForRequest()) {
+    if (shouldForceClientTokenForRequest()) {
       parameters.putString(ACCESS_TOKEN_PARAM, getClientTokenForRequest())
     } else {
       val accessTokenForRequest = getAccessTokenToUseForRequest()
@@ -1545,7 +1515,7 @@ class GraphRequest {
         registerAccessToken(token)
         return token
       }
-    } else if (!skipClientToken && !this.parameters.containsKey(ACCESS_TOKEN_PARAM)) {
+    } else if (!this.parameters.containsKey(ACCESS_TOKEN_PARAM)) {
       return getClientTokenForRequest()
     }
     return this.parameters.getString(ACCESS_TOKEN_PARAM)
@@ -1555,11 +1525,10 @@ class GraphRequest {
     var accessToken: String? = null
     val appID = FacebookSdk.getApplicationId()
     val clientToken = FacebookSdk.getClientToken()
-    if (!isNullOrEmpty(appID) && !isNullOrEmpty(clientToken)) {
-      accessToken = checkNotNull(appID) + "|" + checkNotNull(clientToken)
+    if (appID.isNotEmpty() && clientToken.isNotEmpty()) {
+      accessToken = "$appID|$clientToken"
     } else {
-      logd(
-          TAG, "Warning: Request without access token missing application ID or" + " client token.")
+      logd(TAG, "Warning: Request without access token missing application ID or client token.")
     }
     return accessToken
   }
@@ -1672,8 +1641,11 @@ class GraphRequest {
     if (this.graphPath == null) {
       return false
     }
-    val applicationEndpointRegex = "^/?" + FacebookSdk.getApplicationId() + "/?.*"
-    return this.forceApplicationRequest || Pattern.matches(applicationEndpointRegex, this.graphPath)
+    val applicationIdEndpointRegex = "^/?" + FacebookSdk.getApplicationId() + "/?.*"
+    val appNodeEndpointRegex = "^/?app/?.*"
+    return this.forceApplicationRequest ||
+        Pattern.matches(applicationIdEndpointRegex, this.graphPath) ||
+        Pattern.matches(appNodeEndpointRegex, this.graphPath)
   }
 
   private class Attachment(val request: GraphRequest, val value: Any?)
@@ -1966,7 +1938,7 @@ class GraphRequest {
     fun onCompleted(obj: JSONObject?, response: GraphResponse?)
   }
 
-  internal class ParcelableResourceWithMimeType<RESOURCE : Parcelable?> : Parcelable {
+  class ParcelableResourceWithMimeType<RESOURCE : Parcelable?> : Parcelable {
     val mimeType: String?
     val resource: RESOURCE?
 

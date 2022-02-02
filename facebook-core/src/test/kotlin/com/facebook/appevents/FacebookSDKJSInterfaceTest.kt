@@ -5,14 +5,17 @@ import android.os.Bundle
 import com.facebook.FacebookPowerMockTestCase
 import com.facebook.FacebookSdk
 import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.anyOrNull
 import com.nhaarman.mockitokotlin2.mock
+import com.nhaarman.mockitokotlin2.whenever
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
+import org.powermock.reflect.Whitebox
 
-@PrepareForTest(FacebookSdk::class, FacebookSDKJSInterface::class)
+@PrepareForTest(FacebookSdk::class)
 class FacebookSDKJSInterfaceTest : FacebookPowerMockTestCase() {
   private val validJson =
       "{\n" +
@@ -25,21 +28,23 @@ class FacebookSDKJSInterfaceTest : FacebookPowerMockTestCase() {
   @Before
   fun init() {
     PowerMockito.mockStatic(FacebookSdk::class.java)
-    PowerMockito.`when`(FacebookSdk.isInitialized()).thenReturn(true)
+    whenever(FacebookSdk.isInitialized()).thenReturn(true)
 
     mockContext = mock()
     mockLogger = mock()
 
-    PowerMockito.whenNew(InternalAppEventsLogger::class.java)
-        .withAnyArguments()
+    val mockInternalAppEventsLoggerCompanion = mock<InternalAppEventsLogger.Companion>()
+    whenever(mockInternalAppEventsLoggerCompanion.createInstance(anyOrNull(), anyOrNull()))
         .thenReturn(mockLogger)
+    Whitebox.setInternalState(
+        InternalAppEventsLogger::class.java, "Companion", mockInternalAppEventsLoggerCompanion)
     sdkInterface = FacebookSDKJSInterface(mockContext)
   }
 
   @Test
   fun `test with valid json`() {
     var captureParameters: Bundle? = null
-    PowerMockito.`when`(mockLogger.logEvent(any(), any())).thenAnswer {
+    whenever(mockLogger.logEvent(any(), any())).thenAnswer {
       captureParameters = it.arguments[1] as Bundle
       Unit
     }
@@ -55,7 +60,7 @@ class FacebookSDKJSInterfaceTest : FacebookPowerMockTestCase() {
   @Test
   fun `test nonsense json`() {
     var captureParameters: Bundle? = null
-    PowerMockito.`when`(mockLogger.logEvent(any(), any())).thenAnswer {
+    whenever(mockLogger.logEvent(any(), any())).thenAnswer {
       captureParameters = it.arguments[1] as Bundle
       Unit
     }

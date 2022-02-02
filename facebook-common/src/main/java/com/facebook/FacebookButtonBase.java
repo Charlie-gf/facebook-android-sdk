@@ -32,15 +32,20 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import androidx.activity.result.ActivityResultRegistryOwner;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import com.facebook.appevents.InternalAppEventsLogger;
 import com.facebook.common.R;
 import com.facebook.internal.FragmentWrapper;
 import com.facebook.internal.instrument.crashshield.AutoHandleExceptions;
+import com.facebook.internal.qualityvalidation.Excuse;
+import com.facebook.internal.qualityvalidation.ExcusesForDesignViolations;
 
 /** A base class for a facebook button. */
 @AutoHandleExceptions
+@ExcusesForDesignViolations(@Excuse(type = "MISSING_UNIT_TEST", reason = "Legacy"))
 public abstract class FacebookButtonBase extends Button {
   private String analyticsButtonCreatedEventName;
   private String analyticsButtonTappedEventName;
@@ -110,6 +115,15 @@ public abstract class FacebookButtonBase extends Button {
     return (parentFragment != null) ? parentFragment.getNativeFragment() : null;
   }
 
+  @Nullable
+  public ActivityResultRegistryOwner getAndroidxActivityResultRegistryOwner() {
+    Activity activity = getActivity();
+    if (activity instanceof ActivityResultRegistryOwner) {
+      return (ActivityResultRegistryOwner) activity;
+    }
+    return null;
+  }
+
   @Override
   public void setOnClickListener(final OnClickListener l) {
     this.externalOnClickListener = l;
@@ -122,6 +136,24 @@ public abstract class FacebookButtonBase extends Button {
    */
   public int getRequestCode() {
     return getDefaultRequestCode();
+  }
+
+  /**
+   * Gets the logger eventName when login button is created
+   *
+   * @return an button creation eventName string
+   */
+  protected String getAnalyticsButtonCreatedEventName() {
+    return this.analyticsButtonCreatedEventName;
+  }
+
+  /**
+   * Gets the logger eventName when login button is tap
+   *
+   * @return an button tap eventName string
+   */
+  protected String getAnalyticsButtonTappedEventName() {
+    return this.analyticsButtonTappedEventName;
   }
 
   @Override
@@ -216,12 +248,12 @@ public abstract class FacebookButtonBase extends Button {
     internalOnClickListener = l;
   }
 
-  private void logButtonCreated(final Context context) {
+  protected void logButtonCreated(final Context context) {
     InternalAppEventsLogger logger = new InternalAppEventsLogger(context);
     logger.logEventImplicitly(analyticsButtonCreatedEventName);
   }
 
-  private void logButtonTapped(final Context context) {
+  protected void logButtonTapped(final Context context) {
     InternalAppEventsLogger logger = new InternalAppEventsLogger(context);
     logger.logEventImplicitly(analyticsButtonTappedEventName);
   }
@@ -280,7 +312,6 @@ public abstract class FacebookButtonBase extends Button {
           a.getResourceId(2, 0),
           a.getResourceId(3, 0));
       setCompoundDrawablePadding(a.getDimensionPixelSize(4, 0));
-
     } finally {
       a.recycle();
     }
@@ -346,7 +377,8 @@ public abstract class FacebookButtonBase extends Button {
         context.getTheme().obtainStyledAttributes(attrs, attrsResources, defStyleAttr, defStyleRes);
     try {
       setTextSize(TypedValue.COMPLEX_UNIT_PX, a.getDimensionPixelSize(0, 0));
-      setTypeface(Typeface.defaultFromStyle(a.getInt(1, Typeface.BOLD)));
+      Typeface typeface = getTypeface();
+      setTypeface(Typeface.create(typeface, Typeface.BOLD));
       setText(a.getString(2));
     } finally {
       a.recycle();

@@ -100,6 +100,7 @@ public class SDKConstants {
   public static final String PARAM_CONTEXT_MIN_SIZE = "minSize";
   public static final String PARAM_CONTEXT_MAX_SIZE = "maxSize";
   public static final String PARAM_CONTEXT_ID = "id";
+  public static final String PARAM_CONTEXT_CONTEXT_ID = "context_id";
   public static final String PARAM_CONTEXT_FILTERS = "filters";
 
   // Update
@@ -121,6 +122,27 @@ public class SDKConstants {
   public static final String PARAM_GAME_REQUESTS_DATA = "data";
   public static final String PARAM_GAME_REQUESTS_OPTIONS = "options";
 
+  // Instant Tournaments
+  public static final String PARAM_TOURNAMENTS = "INSTANT_TOURNAMENT";
+  public static final String PARAM_TOURNAMENTS_DEEPLINK = "deeplink";
+  public static final String PARAM_TOURNAMENTS_APP_ID = "app_id";
+  public static final String PARAM_TOURNAMENTS_SCORE = "score";
+  public static final String PARAM_TOURNAMENTS_SORT_ORDER = "sort_order";
+  public static final String PARAM_TOURNAMENTS_SCORE_FORMAT = "score_format";
+  public static final String PARAM_TOURNAMENTS_END_TIME = "end_time";
+  public static final String PARAM_TOURNAMENTS_TITLE = "tournament_title";
+  public static final String PARAM_TOURNAMENTS_PAYLOAD = "tournament_payload";
+  public static final String PARAM_TOURNAMENTS_ID = "tournament_id";
+
   // Outlinking
   public static final String PARAM_URL = "url";
+
+  // Debug Print
+  public static final String PARAM_DEBUG_MESSAGE = "msg";
+  public static final String PARAM_DEBUG_MESSAGE_TAG = "tag";
+  public static final String PARAM_DEBUG_MESSAGE_SEVERITY = "severity";
+  public static final String PARAM_DEBUG_MESSAGE_TIMESTAMP = "timestamp";
+
+  // Tournamet
+  public static final String PARAM_TOURNAMENT_ID = "tournamentId";
 }

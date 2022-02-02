@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook
 
 import android.os.Handler
@@ -35,10 +36,9 @@ class ProgressNoopOutputStream(private val callbackHandler: Handler?) :
     currentRequestProgress = if (currentRequest != null) progressMap[currentRequest] else null
   }
 
-  fun getProgressMap(): Map<GraphRequest, RequestProgress> {
-    return progressMap
-  }
+  fun getProgressMap(): Map<GraphRequest, RequestProgress> = progressMap
 
+  /** Add size to currentRequestProgress's process size */
   fun addProgress(size: Long) {
     val currentRequest = this.currentRequest ?: return
     if (currentRequestProgress == null) {

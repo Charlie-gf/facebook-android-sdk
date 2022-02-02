@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.iap
 
 import android.content.Context
@@ -124,8 +125,9 @@ private constructor(
     invokeMethod(billingClientClazz, method, billingClient, listenerObj)
   }
 
+  @AutoHandleExceptions
   internal class BillingClientStateListenerWrapper : InvocationHandler {
-    override fun invoke(proxy: Any, m: Method, args: Array<Any>): Any? {
+    override fun invoke(proxy: Any, m: Method, args: Array<Any>?): Any? {
       if (m.name == METHOD_ON_BILLING_SETUP_FINISHED) {
         isServiceConnected.set(true)
       } else if (m.name.endsWith(METHOD_ON_BILLING_SERVICE_DISCONNECTED)) {
@@ -135,19 +137,19 @@ private constructor(
     }
   }
 
+  @AutoHandleExceptions
   internal class PurchasesUpdatedListenerWrapper : InvocationHandler {
     // dummy function, no need to implement onPurchasesUpdated
-    override fun invoke(proxy: Any, m: Method, args: Array<Any>): Any? {
-      return null
-    }
+    override fun invoke(proxy: Any, m: Method, args: Array<Any>?): Any? = null
   }
 
+  @AutoHandleExceptions
   internal inner class PurchaseHistoryResponseListenerWrapper(var runnable: Runnable) :
       InvocationHandler {
-    override fun invoke(proxy: Any, method: Method, args: Array<Any>): Any? {
+    override fun invoke(proxy: Any, method: Method, args: Array<Any>?): Any? {
       if (method.name == METHOD_ON_PURCHASE_HISTORY_RESPONSE) {
-        val purchaseHistoryRecordListObject = args[1]
-        if (purchaseHistoryRecordListObject is List<*>) {
+        val purchaseHistoryRecordListObject = args?.get(1)
+        if (purchaseHistoryRecordListObject != null && purchaseHistoryRecordListObject is List<*>) {
           getPurchaseHistoryRecord(purchaseHistoryRecordListObject)
         }
       }
@@ -180,12 +182,13 @@ private constructor(
     }
   }
 
+  @AutoHandleExceptions
   internal inner class SkuDetailsResponseListenerWrapper(var runnable: Runnable) :
       InvocationHandler {
-    override fun invoke(proxy: Any, m: Method, args: Array<Any>): Any? {
+    override fun invoke(proxy: Any, m: Method, args: Array<Any>?): Any? {
       if (m.name == METHOD_ON_SKU_DETAILS_RESPONSE) {
-        val skuDetailsObj = args[1]
-        if (skuDetailsObj is List<*>) {
+        val skuDetailsObj = args?.get(1)
+        if (skuDetailsObj != null && skuDetailsObj is List<*>) {
           parseSkuDetails(skuDetailsObj)
         }
       }
@@ -213,7 +216,7 @@ private constructor(
 
   companion object {
     private val initialized = AtomicBoolean(false)
-    private lateinit var instance: InAppPurchaseBillingClientWrapper
+    private var instance: InAppPurchaseBillingClientWrapper? = null
     val isServiceConnected = AtomicBoolean(false)
 
     // Use ConcurrentHashMap because purchase values may be updated in different threads
@@ -259,7 +262,7 @@ private constructor(
     private const val METHOD_ON_SKU_DETAILS_RESPONSE = "onSkuDetailsResponse"
     @Synchronized
     @JvmStatic
-    fun getOrCreateInstance(context: Context): InAppPurchaseBillingClientWrapper {
+    fun getOrCreateInstance(context: Context): InAppPurchaseBillingClientWrapper? {
       if (initialized.get()) {
         return instance
       }
@@ -335,7 +338,7 @@ private constructor(
               querySkuDetailsAsyncMethod,
               queryPurchaseHistoryAsyncMethod,
               inAppPurchaseSkuDetailsWrapper)
-      instance.startConnection()
+      (instance as InAppPurchaseBillingClientWrapper).startConnection()
     }
 
     private fun createBillingClient(context: Context?, billingClientClazz: Class<*>): Any? {

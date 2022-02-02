@@ -20,15 +20,17 @@
 
 project.ext {
     androidxVersion = "1.1.0"
+    androidxActivityVersion = "1.2.0"
+    androidxFragmentVersion = "1.3.0"
     androidxAnnotationVersion = "1.1.0"
     androidxCardviewVersion = "1.0.0"
     androidxBrowserVersion = "1.0.0"
     androidxLegacyVersion = "1.0.0"
     junitVersion = "4.13"
 
-    kotlinVersion = '1.5.10'
+    kotlinVersion = "1.5.10"
     gradleVersion = "3.5.2"
-    dokkaVersion = '1.4.30'
+    dokkaVersion = "1.4.30"
     buildTools = "29.0.2"
     minSdk = 15
     compileSdk = 29

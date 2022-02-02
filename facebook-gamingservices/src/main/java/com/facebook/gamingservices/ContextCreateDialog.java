@@ -23,12 +23,14 @@ package com.facebook.gamingservices;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import com.facebook.AccessToken;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
+import com.facebook.FacebookSdk;
 import com.facebook.GraphResponse;
 import com.facebook.gamingservices.cloudgaming.CloudGameLoginHandler;
 import com.facebook.gamingservices.cloudgaming.DaemonRequest;
@@ -37,13 +39,14 @@ import com.facebook.gamingservices.cloudgaming.internal.SDKMessageEnum;
 import com.facebook.gamingservices.model.ContextCreateContent;
 import com.facebook.internal.AppCall;
 import com.facebook.internal.CallbackManagerImpl;
+import com.facebook.internal.DialogPresenter;
 import com.facebook.internal.FacebookDialogBase;
 import com.facebook.internal.FragmentWrapper;
+import com.facebook.internal.NativeProtocol;
 import com.facebook.share.internal.ResultProcessor;
 import com.facebook.share.internal.ShareInternalUtility;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -51,7 +54,7 @@ public class ContextCreateDialog
     extends FacebookDialogBase<ContextCreateContent, ContextCreateDialog.Result> {
 
   private static final int DEFAULT_REQUEST_CODE =
-      CallbackManagerImpl.RequestCodeOffset.GameRequest.toRequestCode();
+      CallbackManagerImpl.RequestCodeOffset.GamingContextCreate.toRequestCode();
   private @Nullable FacebookCallback mCallback;
 
   /**
@@ -92,7 +95,12 @@ public class ContextCreateDialog
    */
   @Override
   public boolean canShow(ContextCreateContent content) {
-    return true;
+    if (CloudGameLoginHandler.isRunningInCloud()) {
+      return true;
+    } else {
+      return new FacebookAppHandler().canShow(content, true)
+          || new WebHandler().canShow(content, true);
+    }
   }
 
   @Override
@@ -101,6 +109,7 @@ public class ContextCreateDialog
       this.showForCloud(content, mode);
       return;
     }
+    super.showImpl(content, mode);
   }
 
   private void showForCloud(final ContextCreateContent content, final Object mode) {
@@ -128,20 +137,8 @@ public class ContextCreateDialog
 
     JSONObject parameters = new JSONObject();
     try {
-      if (content.getSuggestedPlayerIDs() != null) {
-        String suggestedPlayersString = content.getSuggestedPlayerIDs();
-        List<String> playerIDsList = Arrays.asList(suggestedPlayersString.split("\\s*,\\s*"));
-        if (!playerIDsList.isEmpty()) {
-          if (playerIDsList.size() == 1) {
-            parameters.put(SDKConstants.PARAM_CONTEXT_ID, playerIDsList.get(0));
-          } else {
-            JSONArray playerIDs = new JSONArray();
-            for (int i = 0; i < playerIDsList.size(); i++) {
-              playerIDs.put(playerIDsList.get(i));
-            }
-            parameters.put(SDKConstants.PARAM_CONTEXT_ID, playerIDs);
-          }
-        }
+      if (content.getSuggestedPlayerID() != null) {
+        parameters.put(SDKConstants.PARAM_CONTEXT_ID, content.getSuggestedPlayerID());
       }
 
       DaemonRequest.executeAsync(
@@ -164,7 +161,25 @@ public class ContextCreateDialog
               @Override
               public void onSuccess(AppCall appCall, Bundle results) {
                 if (results != null) {
-                  callback.onSuccess(new Result(results));
+                  if (results.getString("error_message") != null) {
+                    callback.onError(new FacebookException(results.getString("error_message")));
+                    return;
+                  }
+                  if (results.getString(SDKConstants.PARAM_CONTEXT_ID) != null) {
+                    GamingContext.setCurrentGamingContext(
+                        new GamingContext(results.getString(SDKConstants.PARAM_CONTEXT_ID)));
+                    callback.onSuccess(
+                        new Result(results.getString(SDKConstants.PARAM_CONTEXT_ID)));
+                  } else if (results.getString(SDKConstants.PARAM_CONTEXT_CONTEXT_ID) != null) {
+                    GamingContext.setCurrentGamingContext(
+                        new GamingContext(
+                            results.getString(SDKConstants.PARAM_CONTEXT_CONTEXT_ID)));
+                    callback.onSuccess(
+                        new Result(results.getString(SDKConstants.PARAM_CONTEXT_CONTEXT_ID)));
+                  }
+                  callback.onError(
+                      new FacebookException(
+                          results.getString("Invalid response received from server.")));
                 } else {
                   onCancel(appCall);
                 }
@@ -184,12 +199,16 @@ public class ContextCreateDialog
 
   @Override
   protected List<ModeHandler> getOrderedModeHandlers() {
-    return null;
+    ArrayList<ModeHandler> handlers = new ArrayList<>();
+    handlers.add(new FacebookAppHandler());
+    handlers.add(new WebHandler());
+
+    return handlers;
   }
 
   @Override
   protected AppCall createBaseAppCall() {
-    return null;
+    return new AppCall(getRequestCode());
   }
 
   /*
@@ -198,8 +217,8 @@ public class ContextCreateDialog
   public static final class Result {
     @Nullable String contextID;
 
-    private Result(Bundle results) {
-      this.contextID = results.getString(SDKConstants.PARAM_CONTEXT_ID);
+    private Result(String contextID) {
+      this.contextID = contextID;
     }
 
     private Result(GraphResponse response) {
@@ -223,6 +242,70 @@ public class ContextCreateDialog
      */
     public @Nullable String getContextID() {
       return contextID;
+    }
+  }
+
+  private class WebHandler extends ModeHandler {
+    @Override
+    public boolean canShow(final ContextCreateContent content, boolean isBestEffort) {
+      return true;
+    }
+
+    @Override
+    public AppCall createAppCall(final ContextCreateContent content) {
+      AppCall appCall = createBaseAppCall();
+      Bundle webParams = new Bundle();
+      webParams.putString("player_id", content.getSuggestedPlayerID());
+      AccessToken currentToken = AccessToken.getCurrentAccessToken();
+      if (currentToken != null) {
+        webParams.putString("dialog_access_token", currentToken.getToken());
+      }
+      DialogPresenter.setupAppCallForWebDialog(appCall, "context", webParams);
+
+      return appCall;
+    }
+  }
+
+  private class FacebookAppHandler extends ModeHandler {
+    @Override
+    public boolean canShow(final ContextCreateContent content, boolean isBestEffort) {
+      PackageManager packageManager = getActivityContext().getPackageManager();
+      Intent intent = new Intent("com.facebook.games.gaming_services.DEEPLINK");
+      intent.setType("text/plain");
+      boolean fbAppCanShow = intent.resolveActivity(packageManager) != null;
+
+      AccessToken currentToken = AccessToken.getCurrentAccessToken();
+      boolean isGamingLoggedIn =
+          currentToken != null
+              && currentToken.getGraphDomain() != null
+              && FacebookSdk.GAMING.equals(currentToken.getGraphDomain());
+      return fbAppCanShow && isGamingLoggedIn;
+    }
+
+    @Override
+    public AppCall createAppCall(final ContextCreateContent content) {
+      AppCall appCall = createBaseAppCall();
+
+      Intent intent = new Intent("com.facebook.games.gaming_services.DEEPLINK");
+      intent.setType("text/plain");
+
+      AccessToken accessToken = AccessToken.getCurrentAccessToken();
+      Bundle args = new Bundle();
+      args.putString("deeplink", "CONTEXT_CREATE");
+      if (accessToken != null) {
+        args.putString("game_id", accessToken.getApplicationId());
+      } else {
+        args.putString("game_id", FacebookSdk.getApplicationId());
+      }
+
+      if (content.getSuggestedPlayerID() != null) {
+        args.putString("player_id", content.getSuggestedPlayerID());
+      }
+
+      NativeProtocol.setupProtocolRequestIntent(
+          intent, appCall.getCallId().toString(), "", NativeProtocol.getLatestKnownVersion(), args);
+      appCall.setRequestIntent(intent);
+      return appCall;
     }
   }
 }

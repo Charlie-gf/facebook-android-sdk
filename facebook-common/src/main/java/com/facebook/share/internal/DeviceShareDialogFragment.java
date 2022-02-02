@@ -45,6 +45,8 @@ import com.facebook.HttpMethod;
 import com.facebook.common.R;
 import com.facebook.devicerequests.internal.DeviceRequestsHelper;
 import com.facebook.internal.Validate;
+import com.facebook.internal.qualityvalidation.Excuse;
+import com.facebook.internal.qualityvalidation.ExcusesForDesignViolations;
 import com.facebook.share.model.ShareContent;
 import com.facebook.share.model.ShareLinkContent;
 import com.facebook.share.model.ShareOpenGraphContent;
@@ -59,9 +61,11 @@ import org.json.JSONObject;
  * Android. Use of any of the classes in this package is unsupported, and they may be modified or
  * removed without warning at any time.
  *
- * @deprecated Sharing from devices will no longer work as of Nov 2nd 2020
+ * @deprecated Sharing from devices will no longer work as of Nov 2nd 2020 and this class will be
+ *     removed from v13.0.0 release
  */
 @Deprecated
+@ExcusesForDesignViolations(@Excuse(type = "MISSING_UNIT_TEST", reason = "Legacy"))
 public class DeviceShareDialogFragment extends DialogFragment {
   public static final String TAG = "DeviceShareDialogFragment";
   private static final String DEVICE_SHARE_ENDPOINT = "device/share";

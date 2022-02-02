@@ -16,6 +16,7 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.iap
 
 import android.app.Application
@@ -57,9 +58,9 @@ class InAppPurchaseActivityLifecycleTrackerTest : FacebookPowerMockTestCase() {
     whenever(applicationContext.bindService(any<Intent>(), any<ServiceConnection>(), any<Int>()))
         .thenReturn(true)
     PowerMockito.mockStatic(FacebookSdk::class.java)
-    PowerMockito.`when`(FacebookSdk.isInitialized()).thenReturn(true)
-    PowerMockito.`when`(FacebookSdk.getApplicationId()).thenReturn("123456789")
-    PowerMockito.`when`(FacebookSdk.getApplicationContext()).thenReturn(applicationContext)
+    whenever(FacebookSdk.isInitialized()).thenReturn(true)
+    whenever(FacebookSdk.getApplicationId()).thenReturn("123456789")
+    whenever(FacebookSdk.getApplicationContext()).thenReturn(applicationContext)
     PowerMockito.mockStatic(AutomaticAnalyticsLogger::class.java)
     PowerMockito.mockStatic(InAppPurchaseEventManager::class.java)
 
@@ -76,8 +77,7 @@ class InAppPurchaseActivityLifecycleTrackerTest : FacebookPowerMockTestCase() {
   @Test
   fun `test startIapLogging will bind iap intent and lifecycle callback`() {
     val intentCaptor = argumentCaptor<Intent>()
-    PowerMockito.`when`(AutomaticAnalyticsLogger.isImplicitPurchaseLoggingEnabled())
-        .thenReturn(true)
+    whenever(AutomaticAnalyticsLogger.isImplicitPurchaseLoggingEnabled()).thenReturn(true)
     InAppPurchaseActivityLifecycleTracker.startIapLogging()
     verify(applicationContext).registerActivityLifecycleCallbacks(any())
     verify(applicationContext)
@@ -89,8 +89,7 @@ class InAppPurchaseActivityLifecycleTrackerTest : FacebookPowerMockTestCase() {
 
   @Test
   fun `test startIapLogging will only register once`() {
-    PowerMockito.`when`(AutomaticAnalyticsLogger.isImplicitPurchaseLoggingEnabled())
-        .thenReturn(true)
+    whenever(AutomaticAnalyticsLogger.isImplicitPurchaseLoggingEnabled()).thenReturn(true)
     InAppPurchaseActivityLifecycleTracker.startIapLogging()
     InAppPurchaseActivityLifecycleTracker.startIapLogging()
     verify(applicationContext, times(1)).registerActivityLifecycleCallbacks(any())
@@ -98,8 +97,7 @@ class InAppPurchaseActivityLifecycleTrackerTest : FacebookPowerMockTestCase() {
 
   @Test
   fun `test startIapLogging will not register if implicit purchase disabled`() {
-    PowerMockito.`when`(AutomaticAnalyticsLogger.isImplicitPurchaseLoggingEnabled())
-        .thenReturn(false)
+    whenever(AutomaticAnalyticsLogger.isImplicitPurchaseLoggingEnabled()).thenReturn(false)
     InAppPurchaseActivityLifecycleTracker.startIapLogging()
     verify(applicationContext, never()).registerActivityLifecycleCallbacks(any())
   }

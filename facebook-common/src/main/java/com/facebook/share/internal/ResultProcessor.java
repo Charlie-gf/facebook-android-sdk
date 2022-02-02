@@ -21,9 +21,12 @@
 package com.facebook.share.internal;
 
 import android.os.Bundle;
+import androidx.annotation.Nullable;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
 import com.facebook.internal.AppCall;
+import com.facebook.internal.qualityvalidation.Excuse;
+import com.facebook.internal.qualityvalidation.ExcusesForDesignViolations;
 
 /**
  * com.facebook.share.internal is solely for the use of other packages within the Facebook SDK for
@@ -32,14 +35,15 @@ import com.facebook.internal.AppCall;
  *
  * <p>Callback class to allow derivations of FacebookDialogBase to do custom operations
  */
+@ExcusesForDesignViolations(@Excuse(type = "MISSING_UNIT_TEST", reason = "Legacy"))
 public abstract class ResultProcessor {
-  private FacebookCallback appCallback;
+  private @Nullable FacebookCallback appCallback;
 
-  public ResultProcessor(FacebookCallback callback) {
+  public ResultProcessor(@Nullable FacebookCallback callback) {
     this.appCallback = callback;
   }
 
-  public abstract void onSuccess(AppCall appCall, Bundle results);
+  public abstract void onSuccess(AppCall appCall, @Nullable Bundle results);
 
   /** Override this if anything needs to be done on cancellation (e.g. Logging) */
   public void onCancel(AppCall appCall) {

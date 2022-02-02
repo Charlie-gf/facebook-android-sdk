@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook
 
 import android.annotation.SuppressLint
@@ -200,7 +201,17 @@ class AccessToken : Parcelable {
   }
 
   interface AccessTokenRefreshCallback {
+    /**
+     * The method called on a successful refresh of an AccessToken.
+     *
+     * @param accessToken the access token created from the native link intent.
+     */
     fun OnTokenRefreshed(accessToken: AccessToken?)
+    /**
+     * The method called on a failed refresh of an AccessToken.
+     *
+     * @param exception throw from AccessToken creation.
+     */
     fun OnTokenRefreshFailed(exception: FacebookException?)
   }
 
@@ -212,6 +223,11 @@ class AccessToken : Parcelable {
      * @param token the access token created from the native link intent.
      */
     fun onSuccess(token: AccessToken?)
+    /**
+     * The method called on a failed creation of an AccessToken.
+     *
+     * @param error throw from AccessToken creation.
+     */
     fun onError(error: FacebookException?)
   }
 
@@ -351,26 +367,21 @@ class AccessToken : Parcelable {
     parcel.readStringList(permissionsList)
     expiredPermissions = Collections.unmodifiableSet(HashSet(permissionsList))
     val token = parcel.readString()
-    Validate.notNullOrEmpty(token, "token")
-    this.token = checkNotNull(token)
+    this.token = Validate.notNullOrEmpty(token, "token")
     val sourceString = parcel.readString()
     source =
         if (sourceString != null) AccessTokenSource.valueOf(sourceString)
         else DEFAULT_ACCESS_TOKEN_SOURCE
     lastRefresh = Date(parcel.readLong())
     val applicationId = parcel.readString()
-    Validate.notNullOrEmpty(applicationId, "applicationId")
-    this.applicationId = checkNotNull(applicationId)
+    this.applicationId = Validate.notNullOrEmpty(applicationId, "applicationId")
     val userId = parcel.readString()
-    Validate.notNullOrEmpty(userId, "userId")
-    this.userId = checkNotNull(userId)
+    this.userId = Validate.notNullOrEmpty(userId, "userId")
     dataAccessExpirationTime = Date(parcel.readLong())
     graphDomain = parcel.readString()
   }
 
-  override fun describeContents(): Int {
-    return 0
-  }
+  override fun describeContents(): Int = 0
 
   override fun writeToParcel(dest: Parcel, flags: Int) {
     dest.writeLong(expires.time)

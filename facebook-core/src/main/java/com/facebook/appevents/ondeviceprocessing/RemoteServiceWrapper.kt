@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.ondeviceprocessing
 
 import android.content.ComponentName
@@ -153,9 +154,7 @@ object RemoteServiceWrapper {
     MOBILE_APP_INSTALL("MOBILE_APP_INSTALL"),
     CUSTOM_APP_EVENTS("CUSTOM_APP_EVENTS");
 
-    override fun toString(): String {
-      return eventType
-    }
+    override fun toString(): String = eventType
   }
 
   internal class RemoteServiceConnection : ServiceConnection {

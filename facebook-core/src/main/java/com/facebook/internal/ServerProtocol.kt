@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.internal
 
 import android.os.Bundle
@@ -40,13 +41,18 @@ object ServerProtocol {
   const val DIALOG_PARAM_AUTH_TYPE = "auth_type"
   const val DIALOG_PARAM_CBT = "cbt"
   const val DIALOG_PARAM_CLIENT_ID = "client_id"
+  const val DIALOG_PARAM_CODE_CHALLENGE = "code_challenge"
+  const val DIALOG_PARAM_CODE_CHALLENGE_METHOD = "code_challenge_method"
+  const val DIALOG_PARAM_CODE_REDIRECT_URI = "code_redirect_uri"
   const val DIALOG_PARAM_CUSTOM_TABS_PREFETCHING = "cct_prefetching"
   const val DIALOG_PARAM_DISPLAY = "display"
   const val DIALOG_PARAM_DISPLAY_TOUCH = "touch"
   const val DIALOG_PARAM_E2E = "e2e"
+  const val DIALOG_PARAM_AUTHENTICATION_TOKEN = "id_token"
   const val DIALOG_PARAM_IES = "ies"
   const val DIALOG_PARAM_LEGACY_OVERRIDE = "legacy_override"
   const val DIALOG_PARAM_LOGIN_BEHAVIOR = "login_behavior"
+  const val DIALOG_PARAM_NONCE = "nonce"
   const val DIALOG_PARAM_REDIRECT_URI = "redirect_uri"
   const val DIALOG_PARAM_RESPONSE_TYPE = "response_type"
   const val DIALOG_PARAM_RETURN_SCOPES = "return_scopes"
@@ -62,9 +68,12 @@ object ServerProtocol {
   const val DIALOG_REREQUEST_AUTH_TYPE = "rerequest"
   const val DIALOG_PARAM_FX_APP = "fx_app"
   const val DIALOG_PARAM_SKIP_DEDUPE = "skip_dedupe"
+  const val DIALOG_RESPONSE_TYPE_CODE = "code,signed_request,graph_domain"
   const val DIALOG_RESPONSE_TYPE_TOKEN_AND_SCOPES =
       "token,signed_request,graph_domain,granted_scopes"
   const val DIALOG_RESPONSE_TYPE_TOKEN_AND_SIGNED_REQUEST = "token,signed_request,graph_domain"
+  const val DIALOG_RESPONSE_TYPE_ID_TOKEN_AND_SIGNED_REQUEST =
+      "id_token,token,signed_request,graph_domain"
   const val DIALOG_RETURN_SCOPES_TRUE = "true"
   const val DIALOG_REDIRECT_URI = "fbconnect://success"
   const val DIALOG_REDIRECT_CHROME_OS_URI = "fbconnect://chrome_os_success"
@@ -82,14 +91,13 @@ object ServerProtocol {
   // URL components
   private const val GRAPH_VIDEO_URL_FORMAT = "https://graph-video.%s"
   private const val GRAPH_URL_FORMAT = "https://graph.%s"
-  @JvmStatic fun getDefaultAPIVersion() = "v11.0"
+  @JvmStatic fun getDefaultAPIVersion() = "v12.0"
 
   @JvmStatic
   val errorsProxyAuthDisabled: Collection<String> =
-      Utility.unmodifiableCollection("service_disabled", "AndroidAuthKillSwitchException")
+      listOf("service_disabled", "AndroidAuthKillSwitchException")
   @JvmStatic
-  val errorsUserCanceled: Collection<String> =
-      Utility.unmodifiableCollection("access_denied", "OAuthAccessDeniedException")
+  val errorsUserCanceled: Collection<String> = listOf("access_denied", "OAuthAccessDeniedException")
   @JvmStatic val errorConnectionFailure = "CONNECTION_FAILURE"
   @JvmStatic
   fun getDialogAuthority(): String =

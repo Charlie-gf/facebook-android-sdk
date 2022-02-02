@@ -80,10 +80,10 @@ enum class AccessTokenSource(private val canExtendToken: Boolean) {
    */
   INSTAGRAM_WEB_VIEW(true);
 
-  fun canExtendToken(): Boolean {
-    return canExtendToken
-  }
+  /** @return canExtendToken */
+  fun canExtendToken(): Boolean = canExtendToken
 
+  /** @return if this token is from instagram */
   fun fromInstagram(): Boolean {
     return when (this) {
       INSTAGRAM_APPLICATION_WEB, INSTAGRAM_CUSTOM_CHROME_TAB, INSTAGRAM_WEB_VIEW -> true

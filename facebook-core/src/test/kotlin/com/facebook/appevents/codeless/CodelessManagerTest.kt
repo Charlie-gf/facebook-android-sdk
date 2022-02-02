@@ -1,17 +1,23 @@
-/**
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved. <p> You are hereby granted a
- * non-exclusive, worldwide, royalty-free license to use, copy, modify, and distribute this software
- * in source code or binary form for use in connection with the web services and APIs provided by
- * Facebook. <p> As with any software that integrates with the Facebook platform, your use of this
- * software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be included in all copies
- * or substantial portions of the software. <p> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY
- * OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
- * DEALINGS IN THE SOFTWARE.
+/*
+ * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ *
+ * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
+ * copy, modify, and distribute this software in source code or binary form for use
+ * in connection with the web services and APIs provided by Facebook.
+ *
+ * As with any software that integrates with the Facebook platform, your use of
+ * this software is subject to the Facebook Developer Principles and Policies
+ * [http://developers.facebook.com/policy/]. This copyright notice shall be
+ * included in all copies or substantial portions of the software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.codeless
 
 import android.app.Activity
@@ -27,13 +33,13 @@ import com.nhaarman.mockitokotlin2.eq
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.never
 import com.nhaarman.mockitokotlin2.verify
+import com.nhaarman.mockitokotlin2.whenever
 import java.util.concurrent.atomic.AtomicBoolean
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.api.mockito.PowerMockito.mockStatic
-import org.powermock.api.mockito.PowerMockito.`when` as whenCalled
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
 import org.robolectric.util.ReflectionHelpers
@@ -54,39 +60,39 @@ class CodelessManagerTest : FacebookPowerMockTestCase() {
     mockStatic(FacebookSdk::class.java)
     mockExecutor = FacebookSerialExecutor()
     Whitebox.setInternalState(FacebookSdk::class.java, "executor", mockExecutor)
-    whenCalled(FacebookSdk.getApplicationId()).thenReturn(appId)
-    whenCalled(FacebookSdk.getExecutor()).thenReturn(mockExecutor)
+    whenever(FacebookSdk.getApplicationId()).thenReturn(appId)
+    whenever(FacebookSdk.getExecutor()).thenReturn(mockExecutor)
 
     mockAppSettings = mock()
     mockStatic(FetchedAppSettingsManager::class.java)
-    whenCalled(FetchedAppSettingsManager.getAppSettingsWithoutQuery(appId))
+    whenever(FetchedAppSettingsManager.getAppSettingsWithoutQuery(appId))
         .thenReturn(mockAppSettings)
 
     mockSensorManager = mock()
     mockAccelerometer = mock()
-    whenCalled(mockSensorManager.getDefaultSensor(eq(Sensor.TYPE_ACCELEROMETER)))
+    whenever(mockSensorManager.getDefaultSensor(eq(Sensor.TYPE_ACCELEROMETER)))
         .thenReturn(mockAccelerometer)
 
     mockApplicationContext = mock()
-    whenCalled(mockApplicationContext.getSystemService(eq(Context.SENSOR_SERVICE)))
+    whenever(mockApplicationContext.getSystemService(eq(Context.SENSOR_SERVICE)))
         .thenReturn(mockSensorManager)
 
     mockActivity = mock()
-    whenCalled(mockActivity.applicationContext).thenReturn(mockApplicationContext)
+    whenever(mockActivity.applicationContext).thenReturn(mockApplicationContext)
 
     PowerMockito.spy(CodelessManager::class.java)
     ReflectionHelpers.setStaticField(
         CodelessManager::class.java, "isCodelessEnabled", AtomicBoolean(true))
     ReflectionHelpers.setStaticField(CodelessManager::class.java, "isCheckingSession", true)
-    whenCalled(CodelessManager.checkCodelessSession(appId)).then { checkCodelessSessionTimes++ }
+    whenever(CodelessManager.checkCodelessSession(appId)).then { checkCodelessSessionTimes++ }
   }
 
   @Test
   fun `onActivityResumed when isCodelessEnabled is false`() {
     ReflectionHelpers.setStaticField(
         CodelessManager::class.java, "isCodelessEnabled", AtomicBoolean(false))
-    whenCalled(CodelessManager.isDebugOnEmulator()).thenReturn(true)
-    whenCalled(mockAppSettings.codelessEventsEnabled).thenReturn(true)
+    whenever(CodelessManager.isDebugOnEmulator()).thenReturn(true)
+    whenever(mockAppSettings.codelessEventsEnabled).thenReturn(true)
 
     CodelessManager.onActivityResumed(mockActivity)
     verify(mockApplicationContext, never()).getSystemService(Context.SENSOR_SERVICE)
@@ -98,8 +104,8 @@ class CodelessManagerTest : FacebookPowerMockTestCase() {
 
   @Test
   fun `onActivityResumed when codeless events enabled, is debug on emulator`() {
-    whenCalled(mockAppSettings.codelessEventsEnabled).thenReturn(true)
-    whenCalled(CodelessManager.isDebugOnEmulator()).thenReturn(true)
+    whenever(mockAppSettings.codelessEventsEnabled).thenReturn(true)
+    whenever(CodelessManager.isDebugOnEmulator()).thenReturn(true)
 
     CodelessManager.onActivityResumed(mockActivity)
     verify(mockApplicationContext).getSystemService(Context.SENSOR_SERVICE)
@@ -111,8 +117,8 @@ class CodelessManagerTest : FacebookPowerMockTestCase() {
 
   @Test
   fun `onActivityResumed when codeless isnt events enabled, is debug on emulator`() {
-    whenCalled(mockAppSettings.codelessEventsEnabled).thenReturn(false)
-    whenCalled(CodelessManager.isDebugOnEmulator()).thenReturn(true)
+    whenever(mockAppSettings.codelessEventsEnabled).thenReturn(false)
+    whenever(CodelessManager.isDebugOnEmulator()).thenReturn(true)
 
     CodelessManager.onActivityResumed(mockActivity)
     verify(mockApplicationContext).getSystemService(Context.SENSOR_SERVICE)
@@ -124,8 +130,8 @@ class CodelessManagerTest : FacebookPowerMockTestCase() {
 
   @Test
   fun `onActivityResumed when codeless events isnt enabled, isnt debug on emulator`() {
-    whenCalled(mockAppSettings.codelessEventsEnabled).thenReturn(false)
-    whenCalled(CodelessManager.isDebugOnEmulator()).thenReturn(false)
+    whenever(mockAppSettings.codelessEventsEnabled).thenReturn(false)
+    whenever(CodelessManager.isDebugOnEmulator()).thenReturn(false)
 
     CodelessManager.onActivityResumed(mockActivity)
     verify(mockApplicationContext, never()).getSystemService(Context.SENSOR_SERVICE)
@@ -137,8 +143,8 @@ class CodelessManagerTest : FacebookPowerMockTestCase() {
 
   @Test
   fun `onActivityResumed when codeless events is enabled, isnt debug on emulator`() {
-    whenCalled(mockAppSettings.codelessEventsEnabled).thenReturn(true)
-    whenCalled(CodelessManager.isDebugOnEmulator()).thenReturn(false)
+    whenever(mockAppSettings.codelessEventsEnabled).thenReturn(true)
+    whenever(CodelessManager.isDebugOnEmulator()).thenReturn(false)
 
     CodelessManager.onActivityResumed(mockActivity)
     verify(mockApplicationContext).getSystemService(Context.SENSOR_SERVICE)

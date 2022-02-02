@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents.ml
 
 import kotlin.math.min
@@ -30,6 +31,11 @@ class MTensor(private var shape: IntArray) {
 
   fun getShape(i: Int) = shape[i]
 
+  /**
+   * Reshape the shape
+   *
+   * @param shape to reshape
+   */
   fun reshape(shape: IntArray) {
     this.shape = shape
     val newCapacity = getCapacity(shape)

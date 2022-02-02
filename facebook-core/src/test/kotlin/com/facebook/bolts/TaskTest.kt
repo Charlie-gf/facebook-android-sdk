@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.bolts
 
 import java.util.concurrent.Callable
@@ -73,7 +74,7 @@ class TaskTest {
             } else if (rand >= 0.4) {
               throw CancellationException()
             }
-            (Math.random() * 1000).toInt()
+            (Math.random() * 1_000).toInt()
           }
       tasks.add(task)
     }
@@ -115,7 +116,12 @@ class TaskTest {
     val delayed = Task.delay(200)
     Thread.sleep(50)
     assertThat(delayed.isCompleted).isFalse
-    Thread.sleep(200)
+
+    // make sure that all scheduled commands with 200ms in `BoltsExecutors.scheduled()` are cleared
+    // before assertions since the current implementation `BoltsExecutors.schedule()` promises that
+    // the commands are executed sequentially.
+    BoltsExecutors.scheduled().schedule({}, 200, TimeUnit.MILLISECONDS).get()
+
     assertThat(delayed.isCompleted).isTrue
     assertThat(delayed.isFaulted).isFalse
     assertThat(delayed.isCancelled).isFalse
@@ -328,7 +334,7 @@ class TaskTest {
       sync.unlock()
     }
     // wait -> completes
-    assertThat(task.waitForCompletion(1000, TimeUnit.MILLISECONDS)).isTrue
+    assertThat(task.waitForCompletion(1_000, TimeUnit.MILLISECONDS)).isTrue
     // wait -> already completed
     assertThat(task.waitForCompletion(100, TimeUnit.MILLISECONDS)).isTrue
     assertThat(task.result).isEqualTo(5)

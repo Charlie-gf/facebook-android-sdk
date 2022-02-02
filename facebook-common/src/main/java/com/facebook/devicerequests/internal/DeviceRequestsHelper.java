@@ -27,12 +27,15 @@ import android.graphics.Color;
 import android.net.nsd.NsdManager;
 import android.net.nsd.NsdServiceInfo;
 import android.os.Build;
+import androidx.annotation.Nullable;
 import com.facebook.FacebookSdk;
 import com.facebook.internal.FetchedAppSettings;
 import com.facebook.internal.FetchedAppSettingsManager;
 import com.facebook.internal.SmartLoginOption;
 import com.facebook.internal.Utility;
 import com.facebook.internal.instrument.crashshield.AutoHandleExceptions;
+import com.facebook.internal.qualityvalidation.Excuse;
+import com.facebook.internal.qualityvalidation.ExcusesForDesignViolations;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.MultiFormatWriter;
@@ -41,7 +44,6 @@ import com.google.zxing.common.BitMatrix;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
@@ -50,6 +52,7 @@ import org.json.JSONObject;
  * modified or removed without warning at any time.
  */
 @AutoHandleExceptions
+@ExcusesForDesignViolations(@Excuse(type = "MISSING_UNIT_TEST", reason = "Legacy"))
 public class DeviceRequestsHelper {
 
   private static final String TAG = DeviceRequestsHelper.class.getCanonicalName();
@@ -67,19 +70,21 @@ public class DeviceRequestsHelper {
   private static HashMap<String, NsdManager.RegistrationListener> deviceRequestsListeners =
       new HashMap<>();
 
-  public static String getDeviceInfo() {
+  public static String getDeviceInfo(@Nullable Map<String, String> deviceInfo) {
     // Device info
     // We don't need all the information in Utility.setAppEventExtendedDeviceInfoParameters
     // We only want the model so we can show it to the user, so they know which device
     // the login request comes from
-    JSONObject deviceInfo = new JSONObject();
-    try {
-      deviceInfo.put(DEVICE_INFO_DEVICE, Build.DEVICE);
-      deviceInfo.put(DEVICE_INFO_MODEL, Build.MODEL);
-    } catch (JSONException ignored) {
+    if (deviceInfo == null) {
+      deviceInfo = new HashMap<>();
     }
+    deviceInfo.put(DEVICE_INFO_DEVICE, Build.DEVICE);
+    deviceInfo.put(DEVICE_INFO_MODEL, Build.MODEL);
+    return new JSONObject(deviceInfo).toString();
+  }
 
-    return deviceInfo.toString();
+  public static String getDeviceInfo() {
+    return getDeviceInfo(null);
   }
 
   public static boolean startAdvertisementService(String userCode) {

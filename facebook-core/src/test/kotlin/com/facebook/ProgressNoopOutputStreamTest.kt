@@ -17,8 +17,10 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook
 
+import com.nhaarman.mockitokotlin2.whenever
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
@@ -32,14 +34,13 @@ class ProgressNoopOutputStreamTest : FacebookPowerMockTestCase() {
   @Before
   fun before() {
     PowerMockito.mockStatic(FacebookSdk::class.java)
-    PowerMockito.`when`(FacebookSdk.isInitialized()).thenReturn(true)
+    whenever(FacebookSdk.isInitialized()).thenReturn(true)
     stream = ProgressNoopOutputStream(null)
     val request = PowerMockito.mock(GraphRequest::class.java)
     stream.setCurrentRequest(request)
   }
 
   @After
-  @Throws(Exception::class)
   fun after() {
     stream.close()
   }

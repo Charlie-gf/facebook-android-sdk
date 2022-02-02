@@ -21,20 +21,27 @@
 package com.facebook.login;
 
 import android.app.Activity;
-import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcel;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import com.facebook.AccessToken;
 import com.facebook.AccessTokenSource;
 import com.facebook.AuthenticationToken;
 import com.facebook.FacebookException;
+import com.facebook.FacebookRequestError;
+import com.facebook.FacebookSdk;
+import com.facebook.FacebookServiceException;
 import com.facebook.internal.NativeProtocol;
 import com.facebook.internal.ServerProtocol;
 import com.facebook.internal.Utility;
+import com.facebook.internal.qualityvalidation.Excuse;
+import com.facebook.internal.qualityvalidation.ExcusesForDesignViolations;
 
-abstract class NativeAppLoginMethodHandler extends LoginMethodHandler {
+@ExcusesForDesignViolations(@Excuse(type = "MISSING_UNIT_TEST", reason = "Legacy"))
+@VisibleForTesting(otherwise = VisibleForTesting.PACKAGE_PRIVATE)
+public abstract class NativeAppLoginMethodHandler extends LoginMethodHandler {
 
   NativeAppLoginMethodHandler(LoginClient loginClient) {
     super(loginClient);
@@ -44,15 +51,51 @@ abstract class NativeAppLoginMethodHandler extends LoginMethodHandler {
     super(source);
   }
 
-  abstract int tryAuthorize(LoginClient.Request request);
+  /**
+   * handle the success response from the initial request when user confirms on GDP
+   *
+   * @param request initial request
+   * @param extras data returned from initial request
+   */
+  private void processSuccessResponse(final LoginClient.Request request, Bundle extras) {
+    if (extras.containsKey("code") && !Utility.isNullOrEmpty(extras.getString("code"))) {
+      // if contains "code" which mean this is code flow and need to exchange for token
+      final Bundle codeExchangeExtras = extras;
+      FacebookSdk.getExecutor()
+          .execute(
+              new Runnable() {
+                @Override
+                public void run() {
+                  try {
+                    Bundle processedExtras = processCodeExchange(request, codeExchangeExtras);
+                    handleResultOk(request, processedExtras);
+                  } catch (FacebookServiceException ex) {
+                    FacebookRequestError requestError = ex.getRequestError();
+                    handleResultError(
+                        request,
+                        requestError.getErrorType(),
+                        requestError.getErrorMessage(),
+                        String.valueOf(requestError.getErrorCode()));
+                  } catch (FacebookException ex) {
+                    handleResultError(request, null, ex.getMessage(), null);
+                  }
+                }
+              });
+    } else {
+      // Lightweight Login will go through this flow
+      handleResultOk(request, extras);
+    }
+  }
+
+  public abstract int tryAuthorize(LoginClient.Request request);
 
   public AccessTokenSource getTokenSource() {
     return AccessTokenSource.FACEBOOK_APPLICATION_WEB;
   }
 
   @Override
-  boolean onActivityResult(int requestCode, int resultCode, Intent data) {
-    LoginClient.Request request = loginClient.getPendingRequest();
+  public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
+    LoginClient.Request request = getLoginClient().getPendingRequest();
 
     if (data == null) {
       // This happens if the user presses 'Back'.
@@ -79,10 +122,11 @@ abstract class NativeAppLoginMethodHandler extends LoginMethodHandler {
 
       String e2e = extras.getString(NativeProtocol.FACEBOOK_PROXY_AUTH_E2E_KEY);
       if (!Utility.isNullOrEmpty(e2e)) {
+
         logWebLoginCompleted(e2e);
       }
       if (error == null && errorCode == null && errorMessage == null) {
-        handleResultOk(request, extras);
+        processSuccessResponse(request, extras);
       } else {
         handleResultError(request, error, errorMessage, errorCode);
       }
@@ -92,9 +136,9 @@ abstract class NativeAppLoginMethodHandler extends LoginMethodHandler {
 
   private void completeLogin(@Nullable LoginClient.Result outcome) {
     if (outcome != null) {
-      loginClient.completeAndValidate(outcome);
+      getLoginClient().completeAndValidate(outcome);
     } else {
-      loginClient.tryNextHandler();
+      getLoginClient().tryNextHandler();
     }
   }
 
@@ -120,7 +164,8 @@ abstract class NativeAppLoginMethodHandler extends LoginMethodHandler {
       AccessToken token =
           createAccessTokenFromWebBundle(
               request.getPermissions(), extras, getTokenSource(), request.getApplicationId());
-      AuthenticationToken authenticationToken = createAuthenticationTokenFromWebBundle(extras);
+      AuthenticationToken authenticationToken =
+          createAuthenticationTokenFromWebBundle(extras, request.getNonce());
       completeLogin(
           LoginClient.Result.createCompositeTokenResult(request, token, authenticationToken));
     } catch (FacebookException ex) {
@@ -173,8 +218,8 @@ abstract class NativeAppLoginMethodHandler extends LoginMethodHandler {
     }
 
     try {
-      loginClient.getFragment().startActivityForResult(intent, requestCode);
-    } catch (ActivityNotFoundException e) {
+      getLoginClient().getFragment().startActivityForResult(intent, requestCode);
+    } catch (Exception e) {
       // We do not know if we have the activity until we try starting it.
       // FB is not installed if ActivityNotFoundException is thrown and this might fallback
       // to other handlers

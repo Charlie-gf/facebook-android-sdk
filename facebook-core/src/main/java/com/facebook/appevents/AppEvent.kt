@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents
 
 import android.os.Build
@@ -81,13 +82,9 @@ class AppEvent : Serializable {
     this.inBackground = inBackground
   }
 
-  fun getIsImplicit(): Boolean {
-    return isImplicit
-  }
+  fun getIsImplicit(): Boolean = isImplicit
 
-  fun getJSONObject(): JSONObject {
-    return jsonObject
-  }
+  fun getJSONObject(): JSONObject = jsonObject
 
   // for old events we don't have a checksum
   val isChecksumValid: Boolean

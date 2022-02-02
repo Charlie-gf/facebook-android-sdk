@@ -17,6 +17,7 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
 package com.facebook.appevents
 
 import com.facebook.internal.instrument.crashshield.AutoHandleExceptions
@@ -34,6 +35,10 @@ internal class PersistedEvents : Serializable {
 
   fun keySet(): Set<AccessTokenAppIdPair> {
     return events.keys
+  }
+
+  fun entrySet(): Set<Map.Entry<AccessTokenAppIdPair, MutableList<AppEvent>>> {
+    return events.entries
   }
 
   operator fun get(accessTokenAppIdPair: AccessTokenAppIdPair): List<AppEvent>? {
