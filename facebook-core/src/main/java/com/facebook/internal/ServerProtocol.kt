@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.internal
@@ -35,6 +23,7 @@ import org.json.JSONException
 object ServerProtocol {
   private val TAG = ServerProtocol::class.java.name
   private const val DIALOG_AUTHORITY_FORMAT = "m.%s"
+  private const val GAMING_DIALOG_AUTHORITY_FORMAT = "%s"
   const val DIALOG_PATH = "dialog/"
   const val DIALOG_PARAM_ACCESS_TOKEN = "access_token"
   const val DIALOG_PARAM_APP_ID = "app_id"
@@ -91,17 +80,24 @@ object ServerProtocol {
   // URL components
   private const val GRAPH_VIDEO_URL_FORMAT = "https://graph-video.%s"
   private const val GRAPH_URL_FORMAT = "https://graph.%s"
-  @JvmStatic fun getDefaultAPIVersion() = "v12.0"
+  @JvmStatic fun getDefaultAPIVersion() = "v16.0"
 
   @JvmStatic
-  val errorsProxyAuthDisabled: Collection<String> =
+  fun getErrorsProxyAuthDisabled(): Collection<String> =
       listOf("service_disabled", "AndroidAuthKillSwitchException")
+
   @JvmStatic
-  val errorsUserCanceled: Collection<String> = listOf("access_denied", "OAuthAccessDeniedException")
-  @JvmStatic val errorConnectionFailure = "CONNECTION_FAILURE"
+  fun getErrorsUserCanceled(): Collection<String> =
+      listOf("access_denied", "OAuthAccessDeniedException")
+
+  @JvmStatic fun getErrorConnectionFailure(): String = "CONNECTION_FAILURE"
+
   @JvmStatic
   fun getDialogAuthority(): String =
       String.format(DIALOG_AUTHORITY_FORMAT, FacebookSdk.getFacebookDomain())
+  @JvmStatic
+  fun getGamingDialogAuthority(): String =
+      String.format(GAMING_DIALOG_AUTHORITY_FORMAT, FacebookSdk.getFacebookGamingDomain())
   @JvmStatic
   fun getInstagramDialogAuthority(): String =
       String.format(DIALOG_AUTHORITY_FORMAT, FacebookSdk.getInstagramDomain())

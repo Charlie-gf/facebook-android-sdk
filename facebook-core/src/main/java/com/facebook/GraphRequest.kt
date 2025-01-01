@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook
@@ -351,6 +339,26 @@ class GraphRequest {
     }
 
     /**
+     * Creates a new Request configured to post some parameters to a particular graph path.
+     *
+     * @param accessToken the access token to use, or null
+     * @param graphPath the graph path to retrieve, create, or delete
+     * @param parameters the parameters to be carried in the request
+     * @param callback a callback that will be called when the request is completed to handle
+     * success or error conditions
+     * @return a Request that is ready to execute
+     */
+    @JvmStatic
+    fun newPostRequestWithBundle(
+        accessToken: AccessToken?,
+        graphPath: String?,
+        parameters: Bundle?,
+        callback: Callback?
+    ): GraphRequest {
+      return GraphRequest(accessToken, graphPath, parameters, HttpMethod.POST, callback)
+    }
+
+    /**
      * Creates a new Request configured to retrieve a user's friend list.
      *
      * @param accessToken the access token to use, or null
@@ -619,7 +627,7 @@ class GraphRequest {
         val udid =
             if (attributionIdentifiers.attributionId != null) attributionIdentifiers.attributionId
             else attributionIdentifiers.androidAdvertiserId
-        if (attributionIdentifiers.attributionId != null) {
+        if (udid != null) {
           parameters.putString("udid", udid)
         }
       }
@@ -1271,7 +1279,7 @@ class GraphRequest {
         }
       } else if (String::class.java.isAssignableFrom(valueClass) ||
           Number::class.java.isAssignableFrom(valueClass) ||
-          Boolean::class.java.isAssignableFrom(valueClass)) {
+          java.lang.Boolean::class.java.isAssignableFrom(valueClass)) {
         serializer.writeString(key, value.toString())
       } else if (Date::class.java.isAssignableFrom(valueClass)) {
         val date = value as Date
@@ -1283,6 +1291,10 @@ class GraphRequest {
         // rather than Dates.
         val iso8601DateFormat = SimpleDateFormat(ISO_8601_FORMAT_STRING, Locale.US)
         serializer.writeString(key, iso8601DateFormat.format(date))
+      } else {
+        logd(
+            TAG,
+            "The type of property $key in the graph object is unknown. It won't be sent in the request.")
       }
     }
 
@@ -1942,9 +1954,7 @@ class GraphRequest {
     val mimeType: String?
     val resource: RESOURCE?
 
-    override fun describeContents(): Int {
-      return Parcelable.CONTENTS_FILE_DESCRIPTOR
-    }
+    override fun describeContents(): Int = Parcelable.CONTENTS_FILE_DESCRIPTOR
 
     override fun writeToParcel(out: Parcel, flags: Int) {
       out.writeString(mimeType)

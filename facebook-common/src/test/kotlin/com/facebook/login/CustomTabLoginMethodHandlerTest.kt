@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.login
@@ -35,20 +23,19 @@ import com.facebook.FacebookActivity
 import com.facebook.FacebookException
 import com.facebook.FacebookOperationCanceledException
 import com.facebook.FacebookSdk
-import com.facebook.TestUtils
 import com.facebook.internal.Validate
 import com.facebook.internal.security.OidcSecurityUtil
 import com.facebook.login.AuthenticationTokenTestUtil.getEncodedAuthTokenStringForTest
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.anyOrNull
-import com.nhaarman.mockitokotlin2.argumentCaptor
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.verify
-import com.nhaarman.mockitokotlin2.whenever
 import java.util.Date
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
@@ -69,7 +56,7 @@ class CustomTabLoginMethodHandlerTest : LoginHandlerTestCase() {
     Whitebox.setInternalState(AccessToken::class.java, "Companion", mockAccessTokenCompanion)
 
     val fragment: Fragment = mock<LoginFragment>()
-    whenever(mockLoginClient.getFragment()).thenReturn(fragment)
+    whenever(mockLoginClient.fragment).thenReturn(fragment)
     request = createRequest()
 
     // mock and bypass signature verification
@@ -119,7 +106,7 @@ class CustomTabLoginMethodHandlerTest : LoginHandlerTestCase() {
     val token = checkNotNull(result.token)
     assertThat(token.token).isEqualTo(ACCESS_TOKEN)
     assertDateDiffersWithinDelta(Date(), token.expires, EXPIRES_IN_DELTA * 1000, 1000)
-    TestUtils.assertSamePermissions(PERMISSIONS, token.permissions)
+    assertThat(PERMISSIONS).isEqualTo(token.permissions)
   }
 
   @Test
@@ -142,7 +129,7 @@ class CustomTabLoginMethodHandlerTest : LoginHandlerTestCase() {
     assertThat(token.userId).isEqualTo(USER_ID)
     assertThat(token.graphDomain).isEqualTo("instagram")
     assertThat(token.source).isEqualTo(AccessTokenSource.INSTAGRAM_CUSTOM_CHROME_TAB)
-    TestUtils.assertSamePermissions(PERMISSIONS, token.permissions)
+    assertThat(PERMISSIONS).isEqualTo(token.permissions)
   }
 
   @Test
@@ -246,7 +233,7 @@ class CustomTabLoginMethodHandlerTest : LoginHandlerTestCase() {
     val token = checkNotNull(result.token)
     assertThat(token.token).isEqualTo(ACCESS_TOKEN)
     assertDateDiffersWithinDelta(Date(), token.expires, EXPIRES_IN_DELTA * 1000, 1000)
-    TestUtils.assertSamePermissions(PERMISSIONS, token.permissions)
+    assertThat(PERMISSIONS).isEqualTo(token.permissions)
     return result
   }
 
@@ -262,7 +249,7 @@ class CustomTabLoginMethodHandlerTest : LoginHandlerTestCase() {
   @Test
   fun `test receiving user cancel result`() {
     mockCustomTabRedirectActivity(true)
-    whenever(mockLoginClient.getPendingRequest()).thenReturn(request)
+    whenever(mockLoginClient.pendingRequest).thenReturn(request)
     val handler = CustomTabLoginMethodHandler(mockLoginClient)
     assertThat(handler.onActivityResult(1, Activity.RESULT_CANCELED, null)).isFalse
     val resultCaptor = argumentCaptor<LoginClient.Result>()
@@ -275,7 +262,7 @@ class CustomTabLoginMethodHandlerTest : LoginHandlerTestCase() {
   @Test
   fun `test receiving user ok result`() {
     mockCustomTabRedirectActivity(true)
-    whenever(mockLoginClient.getPendingRequest()).thenReturn(request)
+    whenever(mockLoginClient.pendingRequest).thenReturn(request)
     val handler = CustomTabLoginMethodHandler(mockLoginClient)
     assertThat(handler.onActivityResult(1, Activity.RESULT_OK, null)).isTrue
   }

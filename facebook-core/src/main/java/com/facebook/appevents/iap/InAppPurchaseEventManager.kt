@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.appevents.iap
@@ -26,7 +14,6 @@ import android.os.IBinder
 import androidx.annotation.RestrictTo
 import com.facebook.FacebookSdk.getApplicationContext
 import com.facebook.internal.instrument.crashshield.AutoHandleExceptions
-import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import org.json.JSONException
 import org.json.JSONObject
@@ -316,35 +303,33 @@ object InAppPurchaseEventManager {
     if (method != null) {
       return method
     }
-    try {
-      var paramTypes: Array<Class<*>>? = null
-      when (methodName) {
-        AS_INTERFACE -> paramTypes = arrayOf(IBinder::class.java)
-        GET_SKU_DETAILS ->
-            paramTypes =
-                arrayOf(Integer.TYPE, String::class.java, String::class.java, Bundle::class.java)
-        IS_BILLING_SUPPORTED ->
-            paramTypes = arrayOf(Integer.TYPE, String::class.java, String::class.java)
-        GET_PURCHASES ->
-            paramTypes =
-                arrayOf(Integer.TYPE, String::class.java, String::class.java, String::class.java)
-        GET_PURCHASE_HISTORY ->
-            paramTypes =
-                arrayOf(
-                    Integer.TYPE,
-                    String::class.java,
-                    String::class.java,
-                    String::class.java,
-                    Bundle::class.java)
-      }
-      val parameterTypes = paramTypes
-      method =
-          if (parameterTypes == null) classObj.getDeclaredMethod(methodName, null)
-          else classObj.getDeclaredMethod(methodName, *parameterTypes)
-      methodMap[methodName] = method
-    } catch (e: NoSuchMethodException) {
-      /*no op*/
+
+    var paramTypes: Array<Class<*>>? = null
+    when (methodName) {
+      AS_INTERFACE -> paramTypes = arrayOf(IBinder::class.java)
+      GET_SKU_DETAILS ->
+          paramTypes =
+              arrayOf(Integer.TYPE, String::class.java, String::class.java, Bundle::class.java)
+      IS_BILLING_SUPPORTED ->
+          paramTypes = arrayOf(Integer.TYPE, String::class.java, String::class.java)
+      GET_PURCHASES ->
+          paramTypes =
+              arrayOf(Integer.TYPE, String::class.java, String::class.java, String::class.java)
+      GET_PURCHASE_HISTORY ->
+          paramTypes =
+              arrayOf(
+                  Integer.TYPE,
+                  String::class.java,
+                  String::class.java,
+                  String::class.java,
+                  Bundle::class.java)
     }
+    val parameterTypes = paramTypes
+    method =
+        if (parameterTypes == null) InAppPurchaseUtils.getDeclaredMethod(classObj, methodName, null)
+        else InAppPurchaseUtils.getDeclaredMethod(classObj, methodName, *parameterTypes)
+    if (method != null) methodMap[methodName] = method
+
     return method
   }
 
@@ -353,15 +338,14 @@ object InAppPurchaseEventManager {
     if (classObj != null) {
       return classObj
     }
-    try {
-      classObj = context.classLoader.loadClass(className)
+    classObj = InAppPurchaseUtils.getClassFromContext(context, className)
+    if (classObj != null) {
       classMap[className] = classObj
-    } catch (e: ClassNotFoundException) {
-      /*no op*/
     }
     return classObj
   }
 
+  /** Internal variant of invoke method, uses internal version of getClass and getMethod */
   private fun invokeMethod(
       context: Context,
       className: String,
@@ -371,18 +355,8 @@ object InAppPurchaseEventManager {
   ): Any? {
     var obj = obj
     val classObj = getClass(context, className) ?: return null
-    val methodObj = getMethod(classObj, methodName) ?: return null
-    if (obj != null) {
-      obj = classObj.cast(obj)
-    }
-    try {
-      return methodObj.invoke(obj, *args)
-    } catch (e: IllegalAccessException) {
-      /* swallow */
-    } catch (e: InvocationTargetException) {
-      /* swallow */
-    }
-    return null
+    val method = getMethod(classObj, methodName) ?: return null
+    return InAppPurchaseUtils.invokeMethod(classObj, method, obj, *args)
   }
 
   @JvmStatic

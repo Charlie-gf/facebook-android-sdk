@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook
@@ -29,16 +17,20 @@ import android.util.Log
 import androidx.annotation.RestrictTo
 import androidx.annotation.VisibleForTesting
 import com.facebook.appevents.AppEventsLogger
+import com.facebook.appevents.AppEventsLoggerImpl
 import com.facebook.appevents.AppEventsManager
 import com.facebook.appevents.internal.ActivityLifecycleTracker.startTracking
 import com.facebook.appevents.internal.AppEventsLoggerUtility
+import com.facebook.appevents.internal.AppLinkManager
 import com.facebook.appevents.ondeviceprocessing.OnDeviceProcessingManager
 import com.facebook.core.BuildConfig
 import com.facebook.internal.AttributionIdentifiers.Companion.getAttributionIdentifiers
 import com.facebook.internal.BoltsMeasurementEventListener
 import com.facebook.internal.FeatureManager
+import com.facebook.internal.FetchedAppGateKeepersManager
 import com.facebook.internal.FetchedAppSettingsManager.loadAppSettingsAsync
 import com.facebook.internal.LockOnGetVariable
+import com.facebook.internal.Logger.Companion.log
 import com.facebook.internal.NativeProtocol.updateAllAvailableProtocolVersionsAsync
 import com.facebook.internal.ServerProtocol.getDefaultAPIVersion
 import com.facebook.internal.Utility
@@ -149,8 +141,12 @@ object FacebookSdk {
   @Volatile private var facebookDomain = FACEBOOK_COM
   private var graphRequestCreator: GraphRequestCreator =
       GraphRequestCreator { accessToken, publishUrl, publishParams, callback ->
-    GraphRequest.newPostRequest(accessToken, publishUrl, publishParams, callback)
-  }
+        GraphRequest.newPostRequest(accessToken, publishUrl, publishParams, callback)
+      }
+
+  /** The key for the saved settings for cloudbridge. */
+  const val CLOUDBRIDGE_SAVED_CREDENTIALS = "com.facebook.sdk.CloudBridgeSavedCredentials"
+
   private var isFullyInitialized = false
 
   /**
@@ -280,6 +276,16 @@ object FacebookSdk {
    * @return the Facebook Domain
    */
   @JvmStatic fun getFacebookDomain(): String = facebookDomain
+
+  /**
+   * Gets the base Facebook gaming domain to use when making Web Requests; in production code this
+   * will always be "fb.gg".
+   *
+   * This is required for Custom Update Dialogs which always need to use fb.gg
+   *
+   * @return the Facebook Gaming Domain
+   */
+  @JvmStatic fun getFacebookGamingDomain(): String = FB_GG
 
   /**
    * Gets the base Instagram domain to use when making Web Requests; in production code this will
@@ -425,13 +431,19 @@ object FacebookSdk {
     loadDefaultsFromMetadata(FacebookSdk.applicationContext)
 
     // We should have an application id by now if not throw
-    if (Utility.isNullOrEmpty(applicationId)) {
+    if (applicationId.isNullOrEmpty()) {
       throw FacebookException(
           "A valid Facebook app id must be set in the " +
               "AndroidManifest.xml or set by calling FacebookSdk.setApplicationId " +
               "before initializing the sdk.")
     }
-
+    // We should have an client token by now if not throw
+    if (appClientToken.isNullOrEmpty()) {
+      throw FacebookException(
+          "A valid Facebook app client token must be set in the " +
+              "AndroidManifest.xml or set by calling FacebookSdk.setClientToken " +
+              "before initializing the sdk.")
+    }
     // Set sdkInitialized to true now so the bellow async tasks don't throw not initialized
     // exceptions.
     sdkInitialized.set(true)
@@ -446,6 +458,7 @@ object FacebookSdk {
         UserSettingsManager.getAutoLogAppEventsEnabled()) {
       startTracking(FacebookSdk.applicationContext as Application, applicationId)
     }
+    AppLinkManager.getInstance()?.setupLifecycleListener(FacebookSdk.applicationContext as Application)
 
     // Load app settings from network so that dialog configs are available
     loadAppSettingsAsync()
@@ -632,8 +645,10 @@ object FacebookSdk {
   fun publishInstallAsync(context: Context, applicationId: String) {
     // grab the application context ahead of time, since we will return to the caller
     // immediately.
-    val applicationContext = context.applicationContext
-    getExecutor().execute { publishInstallAndWaitForResponse(applicationContext, applicationId) }
+    val applicationContext = context.applicationContext ?: return
+    if (!FetchedAppGateKeepersManager.getGateKeeperForKey(AppEventsLoggerImpl.APP_EVENTS_KILLSWITCH, getApplicationId(), false)) {
+      getExecutor().execute { publishInstallAndWaitForResponse(applicationContext, applicationId) }
+    }
     if (FeatureManager.isEnabled(FeatureManager.Feature.OnDeviceEventProcessing) &&
         OnDeviceProcessingManager.isOnDeviceProcessingEnabled()) {
       OnDeviceProcessingManager.sendInstallEventAsync(applicationId, ATTRIBUTION_PREFERENCES)
@@ -647,7 +662,7 @@ object FacebookSdk {
       val preferences = context.getSharedPreferences(ATTRIBUTION_PREFERENCES, Context.MODE_PRIVATE)
       val pingKey = applicationId + "ping"
       var lastPing = preferences.getLong(pingKey, 0)
-      val publishParams =
+      var publishParams =
           try {
             AppEventsLoggerUtility.getJSONObjectForGraphAPICall(
                 AppEventsLoggerUtility.GraphAPIActivityType.MOBILE_INSTALL_EVENT,
@@ -658,6 +673,10 @@ object FacebookSdk {
           } catch (e: JSONException) {
             throw FacebookException("An error occurred while publishing install.", e)
           }
+      val installReferrer = AppEventsLoggerImpl.getInstallReferrer()
+      if (installReferrer != null) {
+        publishParams.put("install_referrer", installReferrer)
+      }
       val publishUrl = String.format(PUBLISH_ACTIVITY_PATH, applicationId)
       val publishRequest =
           graphRequestCreator.createPostRequest(null, publishUrl, publishParams, null)
@@ -670,6 +689,11 @@ object FacebookSdk {
           lastPing = System.currentTimeMillis()
           editor.putLong(pingKey, lastPing)
           editor.apply()
+          log(
+            LoggingBehavior.APP_EVENTS,
+            TAG,
+            "MOBILE_APP_INSTALL has been logged"
+          )
         }
       }
     } catch (e: Exception) {
@@ -683,10 +707,7 @@ object FacebookSdk {
    *
    * @return the current version of the SDK
    */
-  @JvmStatic
-  fun getSdkVersion(): String {
-    return FacebookSdkVersion.BUILD
-  }
+  @JvmStatic fun getSdkVersion(): String = FacebookSdkVersion.BUILD
 
   /**
    * Returns whether data such as those generated through AppEventsLogger and sent to Facebook
@@ -861,9 +882,10 @@ object FacebookSdk {
     Validate.sdkInitialized()
     return appClientToken
         ?: throw FacebookException(
-            "A valid Facebook client token must be set in the " +
-                "AndroidManifest.xml or set by calling FacebookSdk.setClientToken " +
-                "before initializing the sdk.")
+            "A valid Facebook client token must be set in the AndroidManifest.xml or set by calling" +
+                " FacebookSdk.setClientToken before initializing the sdk. Visit " +
+                "https://developers.facebook.com/docs/android/getting-started#add-app_id" +
+                " for more information.")
   }
 
   /**

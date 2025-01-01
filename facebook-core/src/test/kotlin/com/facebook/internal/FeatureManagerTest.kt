@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.internal
 
 import com.facebook.internal.FeatureManager.Feature
@@ -23,6 +31,14 @@ class FeatureManagerTest {
     assertEquals(
         Feature.CodelessEvents,
         FeatureManager.getFeature("com.facebook.appevents.codeless.DoesNotExistButStillShouldPass"))
+
+    assertEquals(
+        Feature.CloudBridge,
+        FeatureManager.getFeature("com.facebook.appevents.cloudbridge.AppEventsCAPIManager"))
+    assertEquals(
+        Feature.CloudBridge,
+        FeatureManager.getFeature(
+            "com.facebook.appevents.cloudbridge.DoesNotExistButStillShouldPass"))
 
     assertEquals(
         Feature.ErrorReport,
@@ -65,6 +81,41 @@ class FeatureManagerTest {
         FeatureManager.getFeature("com.facebook.appevents.integrity.DoesNotExistAndShouldNotPass"))
 
     assertEquals(
+      Feature.ProtectedMode,
+      FeatureManager.getFeature("com.facebook.appevents.integrity.ProtectedModeManager"))
+    assertNotEquals(
+      Feature.ProtectedMode,
+      FeatureManager.getFeature("com.facebook.appevents.integrity.DoesNotExistAndShouldNotPass"))
+
+    assertEquals(
+            Feature.MACARuleMatching,
+            FeatureManager.getFeature("com.facebook.appevents.integrity.MACARuleMatchingManager"))
+    assertNotEquals(
+            Feature.MACARuleMatching,
+            FeatureManager.getFeature("com.facebook.appevents.integrity.DoesNotExistAndShouldNotPass"))
+    
+    assertEquals(
+            Feature.BlocklistEvents,
+            FeatureManager.getFeature("com.facebook.appevents.integrity.BlocklistEventsManager"))
+    assertNotEquals(
+            Feature.BlocklistEvents,
+            FeatureManager.getFeature("com.facebook.appevents.integrity.DoesNotExistAndShouldNotPass"))
+
+    assertEquals(
+            Feature.FilterRedactedEvents,
+            FeatureManager.getFeature("com.facebook.appevents.integrity.RedactedEventsManager"))
+    assertNotEquals(
+            Feature.FilterRedactedEvents,
+            FeatureManager.getFeature("com.facebook.appevents.integrity.DoesNotExistAndShouldNotPass"))
+
+    assertEquals(
+            Feature.FilterSensitiveParams,
+            FeatureManager.getFeature("com.facebook.appevents.integrity.SensitiveParamsManager"))
+    assertNotEquals(
+            Feature.FilterSensitiveParams,
+            FeatureManager.getFeature("com.facebook.appevents.integrity.DoesNotExistAndShouldNotPass"))
+    
+    assertEquals(
         Feature.EventDeactivation,
         FeatureManager.getFeature(
             "com.facebook.appevents.eventdeactivation.EventDeactivationManager"))
@@ -102,6 +153,7 @@ class FeatureManagerTest {
     assertEquals(Feature.Core, Feature.Core.parent)
     assertEquals(Feature.Core, Feature.AppEvents.parent)
     assertEquals(Feature.AppEvents, Feature.CodelessEvents.parent)
+    assertEquals(Feature.AppEvents, Feature.CloudBridge.parent)
     assertEquals(Feature.AppEvents, Feature.RestrictiveDataFiltering.parent)
     assertEquals(Feature.AppEvents, Feature.AAM.parent)
     assertEquals(Feature.AppEvents, Feature.PrivacyProtection.parent)
@@ -109,6 +161,11 @@ class FeatureManagerTest {
     assertEquals(Feature.IapLogging, Feature.IapLoggingLib2.parent)
     assertEquals(Feature.PrivacyProtection, Feature.SuggestedEvents.parent)
     assertEquals(Feature.PrivacyProtection, Feature.IntelligentIntegrity.parent)
+    assertEquals(Feature.PrivacyProtection, Feature.ProtectedMode.parent)
+    assertEquals(Feature.PrivacyProtection, Feature.MACARuleMatching.parent)
+    assertEquals(Feature.PrivacyProtection, Feature.BlocklistEvents.parent)
+    assertEquals(Feature.PrivacyProtection, Feature.FilterRedactedEvents.parent)
+    assertEquals(Feature.PrivacyProtection, Feature.FilterSensitiveParams.parent)
     assertEquals(Feature.AppEvents, Feature.EventDeactivation.parent)
     assertEquals(Feature.Core, Feature.Instrument.parent)
     assertEquals(Feature.Instrument, Feature.CrashReport.parent)
@@ -118,6 +175,8 @@ class FeatureManagerTest {
     assertEquals(Feature.AppEvents, Feature.OnDeviceEventProcessing.parent)
     assertEquals(Feature.OnDeviceEventProcessing, Feature.OnDevicePostInstallEventProcessing.parent)
     assertEquals(Feature.Core, Feature.Monitoring.parent)
+    assertEquals(Feature.Core, Feature.Megatron.parent)
+    assertEquals(Feature.Core, Feature.Elora.parent)
   }
 
   @Test
@@ -128,11 +187,6 @@ class FeatureManagerTest {
   @Test
   fun `test features parents inside Share`() {
     assertEquals(Feature.Core, Feature.Share.parent)
-  }
-
-  @Test
-  fun `test features parents inside Places`() {
-    assertEquals(Feature.Core, Feature.Places.parent)
   }
 
   @Test

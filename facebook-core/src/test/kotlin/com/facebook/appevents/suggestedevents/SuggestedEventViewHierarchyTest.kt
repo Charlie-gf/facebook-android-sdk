@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.appevents.suggestedevents
 
 import android.app.Activity
@@ -13,13 +21,13 @@ import com.facebook.appevents.internal.ViewHierarchyConstants.HINT_KEY
 import com.facebook.appevents.internal.ViewHierarchyConstants.INPUT_TYPE_KEY
 import com.facebook.appevents.internal.ViewHierarchyConstants.IS_INTERACTED_KEY
 import com.facebook.appevents.internal.ViewHierarchyConstants.TEXT_KEY
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.whenever
 import java.util.Collections.emptyList
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.robolectric.Robolectric

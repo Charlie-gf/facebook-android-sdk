@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.appevents
@@ -31,17 +19,17 @@ import com.facebook.internal.FeatureManager
 import com.facebook.internal.FetchedAppGateKeepersManager
 import com.facebook.internal.FetchedAppSettingsManager
 import com.facebook.internal.FetchedAppSettingsManager.parseAppSettingsFromJSON
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.times
-import com.nhaarman.mockitokotlin2.verify
-import com.nhaarman.mockitokotlin2.whenever
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
+import org.assertj.core.api.Assertions.assertThat
 import org.json.JSONObject
-import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
@@ -51,7 +39,7 @@ import org.robolectric.RuntimeEnvironment
 
 @PrepareForTest(
     AppEventQueue::class,
-    AppEventStore::class,
+    AppEventDiskStore::class,
     AttributionIdentifiers::class,
     ActivityLifecycleTracker::class,
     FacebookSdk::class,
@@ -78,22 +66,22 @@ class AutomaticAnalyticsTest : FacebookPowerMockTestCase() {
     val settingsJSON = JSONObject()
     settingsJSON.put("app_events_feature_bitmask", "0")
     var settings = parseAppSettingsFromJSON("123", settingsJSON)
-    Assert.assertFalse(settings.automaticLoggingEnabled)
+    assertThat(settings.automaticLoggingEnabled).isFalse
     settingsJSON.put("app_events_feature_bitmask", "7")
     settings = parseAppSettingsFromJSON("123", settingsJSON)
-    Assert.assertFalse(settings.automaticLoggingEnabled)
+    assertThat(settings.automaticLoggingEnabled).isFalse
     settingsJSON.put("app_events_feature_bitmask", "23")
     settings = parseAppSettingsFromJSON("123", settingsJSON)
-    Assert.assertFalse(settings.automaticLoggingEnabled)
+    assertThat(settings.automaticLoggingEnabled).isFalse
     settingsJSON.put("app_events_feature_bitmask", "8")
     settings = parseAppSettingsFromJSON("123", settingsJSON)
-    Assert.assertTrue(settings.automaticLoggingEnabled)
+    assertThat(settings.automaticLoggingEnabled).isTrue
     settingsJSON.put("app_events_feature_bitmask", "9")
     settings = parseAppSettingsFromJSON("123", settingsJSON)
-    Assert.assertTrue(settings.automaticLoggingEnabled)
+    assertThat(settings.automaticLoggingEnabled).isTrue
     val noBitmaskFieldSettings = JSONObject()
     settings = parseAppSettingsFromJSON("123", noBitmaskFieldSettings)
-    Assert.assertFalse(settings.automaticLoggingEnabled)
+    assertThat(settings.automaticLoggingEnabled).isFalse
   }
 
   @Test
@@ -135,12 +123,12 @@ class AutomaticAnalyticsTest : FacebookPowerMockTestCase() {
         .thenReturn(mockIdentifiers)
 
     // Mock App Event Store
-    PowerMockito.mockStatic(AppEventStore::class.java)
+    PowerMockito.mockStatic(AppEventDiskStore::class.java)
     val accessTokenAppIdPair = AccessTokenAppIdPair(null, "1234")
     val appEvent = AppEvent("ctxName", "eventName2", 0.0, Bundle(), true, true, null)
     val map = hashMapOf(accessTokenAppIdPair to mutableListOf(appEvent))
     val persistedEvents: PersistedEvents = PersistedEvents(map)
-    whenever(AppEventStore.readAndClearStore()).thenReturn(persistedEvents)
+    whenever(AppEventDiskStore.readAndClearStore()).thenReturn(persistedEvents)
 
     // Mock graph request
     val mockRequest: GraphRequest = mock()

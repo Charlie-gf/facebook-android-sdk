@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.login
@@ -26,6 +14,7 @@ import android.os.Parcelable
 import android.text.TextUtils
 import com.facebook.AccessTokenSource
 import com.facebook.FacebookException
+import com.facebook.FacebookSdk
 import com.facebook.internal.NativeProtocol
 import com.facebook.internal.PlatformServiceClient
 import com.facebook.internal.Utility
@@ -34,7 +23,7 @@ import java.util.HashSet
 import org.json.JSONException
 import org.json.JSONObject
 
-internal class GetTokenLoginMethodHandler : LoginMethodHandler {
+class GetTokenLoginMethodHandler : LoginMethodHandler {
   private var getTokenClient: GetTokenClient? = null
 
   constructor(loginClient: LoginClient) : super(loginClient)
@@ -50,7 +39,8 @@ internal class GetTokenLoginMethodHandler : LoginMethodHandler {
   }
 
   override fun tryAuthorize(request: LoginClient.Request): Int {
-    getTokenClient = GetTokenClient(loginClient.activity, request)
+    getTokenClient =
+        GetTokenClient(loginClient.activity ?: FacebookSdk.getApplicationContext(), request)
     if (getTokenClient?.start() == false) {
       return 0
     }
@@ -109,7 +99,7 @@ internal class GetTokenLoginMethodHandler : LoginMethodHandler {
           val authenticationToken = createAuthenticationTokenFromNativeLogin(result, request.nonce)
           LoginClient.Result.createCompositeTokenResult(request, token, authenticationToken)
         } catch (ex: FacebookException) {
-          LoginClient.Result.createErrorResult(loginClient.getPendingRequest(), null, ex.message)
+          LoginClient.Result.createErrorResult(loginClient.pendingRequest, null, ex.message)
         }
     loginClient.completeAndValidate(outcome)
   }
@@ -131,14 +121,14 @@ internal class GetTokenLoginMethodHandler : LoginMethodHandler {
               } catch (ex: JSONException) {
                 loginClient.complete(
                     LoginClient.Result.createErrorResult(
-                        loginClient.getPendingRequest(), "Caught exception", ex.message))
+                        loginClient.pendingRequest, "Caught exception", ex.message))
               }
             }
 
             override fun onFailure(error: FacebookException?) {
               loginClient.complete(
                   LoginClient.Result.createErrorResult(
-                      loginClient.getPendingRequest(), "Caught exception", error?.message))
+                      loginClient.pendingRequest, "Caught exception", error?.message))
             }
           })
     } else {
@@ -148,9 +138,7 @@ internal class GetTokenLoginMethodHandler : LoginMethodHandler {
 
   constructor(source: Parcel) : super(source)
 
-  override fun describeContents(): Int {
-    return 0
-  }
+  override fun describeContents(): Int = 0
 
   companion object {
     @JvmField

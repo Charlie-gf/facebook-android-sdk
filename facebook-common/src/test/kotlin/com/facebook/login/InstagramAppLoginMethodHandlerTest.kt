@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.login
@@ -24,15 +12,13 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import com.facebook.FacebookSdk
-import com.facebook.TestUtils
-import com.nhaarman.mockitokotlin2.argumentCaptor
-import com.nhaarman.mockitokotlin2.times
-import com.nhaarman.mockitokotlin2.verify
-import com.nhaarman.mockitokotlin2.whenever
 import java.util.Date
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PowerMockIgnore
 import org.powermock.core.classloader.annotations.PrepareForTest
@@ -47,10 +33,8 @@ class InstagramAppLoginMethodHandlerTest : LoginHandlerTestCase() {
             "jb2RlIjoid2h5bm90IiwiaXNzdWVkX2F0IjoxNDIyNTAyMDkyLCJ1c2VyX2lkIjoiMTIzIn0"
   }
 
-  @Throws(Exception::class)
-  @Before
-  override fun before() {
-    super.before()
+  override fun setup() {
+    super.setup()
     PowerMockito.mockStatic(FacebookSdk::class.java)
     PowerMockito.`when`(FacebookSdk.isInitialized()).thenReturn(true)
     PowerMockito.`when`(FacebookSdk.getApplicationId()).thenReturn("123456789")
@@ -69,7 +53,7 @@ class InstagramAppLoginMethodHandlerTest : LoginHandlerTestCase() {
     val handler = InstagramAppLoginMethodHandler(mockLoginClient)
 
     val request = createRequest()
-    whenever(mockLoginClient.getPendingRequest()).thenReturn(request)
+    whenever(mockLoginClient.pendingRequest).thenReturn(request)
 
     handler.tryAuthorize(request)
     handler.onActivityResult(0, Activity.RESULT_OK, intent)
@@ -86,7 +70,7 @@ class InstagramAppLoginMethodHandlerTest : LoginHandlerTestCase() {
     assertThat(token).isNotNull
     assertThat(token.token).isEqualTo(ACCESS_TOKEN)
     assertDateDiffersWithinDelta(Date(), token.expires, EXPIRES_IN_DELTA * 1000, 1000)
-    TestUtils.assertSamePermissions(PERMISSIONS, token.permissions)
+    assertThat(PERMISSIONS).isEqualTo(token.permissions)
   }
 
   @Test
@@ -156,6 +140,6 @@ class InstagramAppLoginMethodHandlerTest : LoginHandlerTestCase() {
     assertThat(result.token).isNull()
     val errorMessage = checkNotNull(result.errorMessage)
     assertThat(errorMessage).isNotNull
-    assertThat(errorMessage.contains(ERROR_MESSAGE)).isTrue
+    assertThat(errorMessage).contains(ERROR_MESSAGE)
   }
 }

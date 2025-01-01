@@ -1,26 +1,15 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -32,23 +21,30 @@ import com.facebook.UserSettingsManager.setAdvertiserIDCollectionEnabled
 import com.facebook.UserSettingsManager.setAutoInitEnabled
 import com.facebook.UserSettingsManager.setAutoLogAppEventsEnabled
 import com.facebook.appevents.InternalAppEventsLogger
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.eq
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.verify
-import com.nhaarman.mockitokotlin2.whenever
+import com.facebook.internal.FetchedAppSettingsManager
 import org.assertj.core.api.Assertions.assertThat
+import org.json.JSONObject
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
+import org.powermock.reflect.Whitebox
+import java.util.concurrent.atomic.AtomicBoolean
 
-@PrepareForTest(UserSettingsManager::class, FacebookSdk::class)
+@PrepareForTest(UserSettingsManager::class, FacebookSdk::class, FetchedAppSettingsManager::class)
 class UserSettingsManagerTest : FacebookPowerMockTestCase() {
   private lateinit var mockApplicationContext: Context
   private lateinit var mockPackageManager: PackageManager
   private lateinit var mockApplicationInfo: ApplicationInfo
   private lateinit var mockLogger: InternalAppEventsLogger
+  private lateinit var mockSharedPreference: SharedPreferences
+  
   @Before
   override fun setup() {
     super.setup()
@@ -56,12 +52,13 @@ class UserSettingsManagerTest : FacebookPowerMockTestCase() {
     mockPackageManager = mock()
     mockApplicationContext = mock()
     mockApplicationInfo = mock()
+    mockSharedPreference = MockSharedPreference()
     whenever(mockApplicationContext.packageManager).thenReturn(mockPackageManager)
     whenever(mockApplicationContext.applicationContext).thenReturn(mockApplicationContext)
     whenever(mockApplicationContext.packageName).thenReturn("com.facebook.test")
     whenever(mockPackageManager.getApplicationInfo(any(), any())).thenReturn(mockApplicationInfo)
     whenever(mockApplicationContext.getSharedPreferences(any<String>(), any()))
-        .thenReturn(MockSharedPreference())
+        .thenReturn(mockSharedPreference)
     PowerMockito.mockStatic(FacebookSdk::class.java)
     whenever(FacebookSdk.isInitialized()).thenReturn(true)
     whenever(FacebookSdk.getApplicationId()).thenReturn("123456789")
@@ -78,6 +75,11 @@ class UserSettingsManagerTest : FacebookPowerMockTestCase() {
     PowerMockito.whenNew(InternalAppEventsLogger::class.java)
         .withAnyArguments()
         .thenReturn(mockLogger)
+  }
+
+  @After
+  fun clean() {
+    mockSharedPreference.edit().clear().commit()
   }
 
   @Test
@@ -123,6 +125,75 @@ class UserSettingsManagerTest : FacebookPowerMockTestCase() {
     assertThat(setAutoLogAppEventsEnabledbledValue).isFalse
   }
 
+  @Test
+  fun `test AutoLogEnabled without values from server`() {
+    PowerMockito.mockStatic(FetchedAppSettingsManager::class.java)
+    whenever(FetchedAppSettingsManager.getCachedMigratedAutoLogValuesInAppSettings()).thenReturn(null)
+
+    val enable = FacebookSdk.getAutoLogAppEventsEnabled()
+    assertThat(enable).isTrue
+  }
+
+  @Test
+  fun `test AutoLogEnabled return the enabled value fetched from server`() {
+    PowerMockito.mockStatic(FetchedAppSettingsManager::class.java)
+    val mockedAutoLogAppEventsValues = HashMap<String, Boolean>()
+    mockedAutoLogAppEventsValues[FetchedAppSettingsManager.AUTO_LOG_APP_EVENTS_DEFAULT_FIELD] = false
+    mockedAutoLogAppEventsValues[FetchedAppSettingsManager.AUTO_LOG_APP_EVENT_ENABLED_FIELD] = false
+    whenever(FetchedAppSettingsManager.getCachedMigratedAutoLogValuesInAppSettings()).thenReturn(mockedAutoLogAppEventsValues)
+
+    setAutoLogAppEventsEnabled(true)
+    val enable = FacebookSdk.getAutoLogAppEventsEnabled()
+    assertThat(enable).isFalse
+  }
+
+  @Test
+  fun `test AutoLogEnabled return the value in cache`() {
+    PowerMockito.mockStatic(FetchedAppSettingsManager::class.java)
+    val mockedAutoLogAppEventsValues = HashMap<String, Boolean>()
+    mockedAutoLogAppEventsValues[FetchedAppSettingsManager.AUTO_LOG_APP_EVENTS_DEFAULT_FIELD] = false
+    whenever(FetchedAppSettingsManager.getCachedMigratedAutoLogValuesInAppSettings()).thenReturn(mockedAutoLogAppEventsValues)
+
+    val jsonObject = JSONObject()
+    jsonObject.put("value", true)
+    mockSharedPreference.edit().putString(FacebookSdk.AUTO_LOG_APP_EVENTS_ENABLED_PROPERTY, jsonObject.toString()).apply()
+    Whitebox.setInternalState(UserSettingsManager::class.java,"isInitialized", AtomicBoolean(true))
+    Whitebox.setInternalState(UserSettingsManager::class.java,"userSettingPref", mockSharedPreference)
+
+    val enable = FacebookSdk.getAutoLogAppEventsEnabled()
+    assertThat(enable).isTrue
+  }
+
+  @Test
+  fun `test AutoLogEnabled return the value set in manifest file`() {
+    PowerMockito.mockStatic(FetchedAppSettingsManager::class.java)
+    val mockedAutoLogAppEventsValues = HashMap<String, Boolean>()
+    mockedAutoLogAppEventsValues[FetchedAppSettingsManager.AUTO_LOG_APP_EVENTS_DEFAULT_FIELD] = false
+    whenever(FetchedAppSettingsManager.getCachedMigratedAutoLogValuesInAppSettings()).thenReturn(mockedAutoLogAppEventsValues)
+    Whitebox.setInternalState(UserSettingsManager::class.java,"isInitialized", AtomicBoolean(true))
+    Whitebox.setInternalState(UserSettingsManager::class.java,"userSettingPref", mockSharedPreference)
+
+    val metaData = Bundle()
+    metaData.putBoolean(FacebookSdk.AUTO_LOG_APP_EVENTS_ENABLED_PROPERTY, true)
+    mockApplicationInfo.metaData = metaData
+
+    val enable = FacebookSdk.getAutoLogAppEventsEnabled()
+    assertThat(enable).isTrue
+  }
+
+  @Test
+  fun `test AutoLogEnabled return the default value fetched from server`() {
+    PowerMockito.mockStatic(FetchedAppSettingsManager::class.java)
+    val mockedAutoLogAppEventsValues = HashMap<String, Boolean>()
+    mockedAutoLogAppEventsValues[FetchedAppSettingsManager.AUTO_LOG_APP_EVENTS_DEFAULT_FIELD] = false
+    whenever(FetchedAppSettingsManager.getCachedMigratedAutoLogValuesInAppSettings()).thenReturn(mockedAutoLogAppEventsValues)
+    Whitebox.setInternalState(UserSettingsManager::class.java,"isInitialized", AtomicBoolean(true))
+    Whitebox.setInternalState(UserSettingsManager::class.java,"userSettingPref", mockSharedPreference)
+
+    val enable = FacebookSdk.getAutoLogAppEventsEnabled()
+    assertThat(enable).isFalse
+  }
+  
   @Test
   fun testAdvertiserIDCollectionEnabled() {
     PowerMockito.mockStatic(UserSettingsManager::class.java)

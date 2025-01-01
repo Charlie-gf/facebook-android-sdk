@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.appevents.ml
@@ -68,7 +56,6 @@ object ModelManager {
   }
 
   private val taskHandlers: MutableMap<String?, TaskHandler> = ConcurrentHashMap()
-  private const val SDK_MODEL_ASSET = "%s/model_asset"
   private const val MODEL_ASSERT_STORE = "com.facebook.internal.MODEL_STORE"
   private const val CACHE_KEY_MODELS = "models"
   private const val MTML_USE_CASE = "MTML"
@@ -77,8 +64,8 @@ object ModelManager {
   private const val ASSET_URI_KEY = "asset_uri"
   private const val RULES_URI_KEY = "rules_uri"
   private const val THRESHOLD_KEY = "thresholds"
-  private const val MODEL_REQUEST_INTERVAL_MILLISECONDS = 1000 * 60 * 60 * 24 * 3
   private const val CACHE_KEY_REQUEST_TIMESTAMP = "model_request_timestamp"
+  const val MODEL_REQUEST_INTERVAL_MILLISECONDS = 1000 * 60 * 60 * 24 * 3
 
   @SuppressWarnings("deprecation")
   private val MTML_SUGGESTED_EVENTS_PREDICTION =
@@ -297,7 +284,7 @@ object ModelManager {
         .toTypedArray()
   }
 
-  private class TaskHandler
+  class TaskHandler
   constructor(
       var useCase: String,
       var assetUri: String,

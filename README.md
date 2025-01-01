@@ -1,11 +1,13 @@
 Facebook SDK for Android
 ========================
-![Verify build with gradle](https://github.com/facebook/facebook-android-sdk/workflows/Verify%20build%20with%20gradle/badge.svg)
+[![Run testsuite with gradle](https://github.com/facebook/facebook-android-sdk/actions/workflows/verifybuild.yml/badge.svg)](https://github.com/facebook/facebook-android-sdk/actions/workflows/verifybuild.yml)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.facebook.android/facebook-android-sdk/badge.svg?style=flat)](https://maven-badges.herokuapp.com/maven-central/com.facebook.android/facebook-android-sdk)
 
-This open-source library allows you to integrate Facebook into your Android app.
+This library allows you to integrate Facebook into your Android app.
 
 Learn more about the provided samples, documentation, integrating the SDK into your app, accessing source code, and more at https://developers.facebook.com/docs/android
+
+:wave: The SDK team is eager to learn from you! Fill out [this survey](https://facebook.co1.qualtrics.com/jfe/form/SV_2hJ13Imkq1YF9Sm?TrackID=GitHub) to tell us what’s most important to you and how we can improve.
 
 TRY IT OUT
 ----------
@@ -76,6 +78,9 @@ dependencies {
 
     // Facebook App Links only
     implementation 'com.facebook.android:facebook-applinks:latest.release'
+    
+    // Facebook Marketing only
+    implementation 'com.facebook.android:facebook-marketing:latest.release'
 
     // Facebook Android SDK (everything)
     implementation 'com.facebook.android:facebook-android-sdk:latest.release'

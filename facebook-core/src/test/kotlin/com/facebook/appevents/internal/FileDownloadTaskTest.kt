@@ -1,20 +1,28 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.appevents.internal
 
 import android.annotation.TargetApi
 import com.facebook.FacebookPowerMockTestCase
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.whenever
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import java.io.File
 import java.net.URL
 import java.net.URLConnection
 import java.nio.file.Files
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.internal.WhiteboxImpl
@@ -57,7 +65,7 @@ class FileDownloadTaskTest : FacebookPowerMockTestCase() {
     whenever(task.doInBackground()).thenCallRealMethod()
     WhiteboxImpl.setInternalState(task, "uriStr", uriStr)
     WhiteboxImpl.setInternalState(task, "destFile", tempFile)
-    assertTrue(task.doInBackground())
+    assertThat(task.doInBackground()).isTrue
 
     val lines = Files.readAllLines(tempFile.toPath())
     assertEquals(1, lines.size)

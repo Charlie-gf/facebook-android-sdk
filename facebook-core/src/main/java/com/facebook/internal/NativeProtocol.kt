@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.internal
@@ -67,15 +55,20 @@ object NativeProtocol {
   const val PROTOCOL_VERSION_20121101 = 2012_11_01
   const val PROTOCOL_VERSION_20130502 = 2013_05_02
   const val PROTOCOL_VERSION_20130618 = 2013_06_18
+  const val PROTOCOL_VERSION_20131024 = 2013_10_24
   const val PROTOCOL_VERSION_20131107 = 2013_11_07
   const val PROTOCOL_VERSION_20140204 = 2014_02_04
+  const val PROTOCOL_VERSION_20140313 = 2014_03_13
   const val PROTOCOL_VERSION_20140324 = 2014_03_24
   const val PROTOCOL_VERSION_20140701 = 2014_07_01
   const val PROTOCOL_VERSION_20141001 = 2014_10_01
   const val PROTOCOL_VERSION_20141028 = 2014_10_28
   const val PROTOCOL_VERSION_20141107 = 2014_11_07 // Bucketed Result Intents
   const val PROTOCOL_VERSION_20141218 = 2014_12_18
+  const val PROTOCOL_VERSION_20150401 = 2015_04_01
+  const val PROTOCOL_VERSION_20150702 = 2015_07_02
   const val PROTOCOL_VERSION_20160327 = 2016_03_27
+  const val PROTOCOL_VERSION_20161017 = 2016_10_17
   const val PROTOCOL_VERSION_20170213 = 2017_02_13
   const val PROTOCOL_VERSION_20170411 = 2017_04_11 // express login
   const val PROTOCOL_VERSION_20170417 = 2017_04_17
@@ -346,10 +339,15 @@ object NativeProtocol {
     intent.putExtra(ServerProtocol.DIALOG_PARAM_STATE, clientState)
     intent.putExtra(ServerProtocol.DIALOG_PARAM_RESPONSE_TYPE, appInfo.getResponseType())
     intent.putExtra(ServerProtocol.DIALOG_PARAM_NONCE, nonce)
-    if (!Utility.isNullOrEmpty(codeChallenge) && !Utility.isNullOrEmpty(codeChallengeMethod)) {
-      intent.putExtra(ServerProtocol.DIALOG_PARAM_CODE_CHALLENGE, codeChallenge)
-      intent.putExtra(ServerProtocol.DIALOG_PARAM_CODE_CHALLENGE_METHOD, codeChallengeMethod)
-    }
+
+    // TODO T111412069
+    //    if (!Utility.isNullOrEmpty(codeChallenge) && !Utility.isNullOrEmpty(codeChallengeMethod))
+    // {
+    //      intent.putExtra(ServerProtocol.DIALOG_PARAM_CODE_CHALLENGE, codeChallenge)
+    //      intent.putExtra(ServerProtocol.DIALOG_PARAM_CODE_CHALLENGE_METHOD, codeChallengeMethod)
+    //      intent.putExtra(
+    //          ServerProtocol.DIALOG_PARAM_RESPONSE_TYPE, ServerProtocol.DIALOG_RESPONSE_TYPE_CODE)
+    //    }
     intent.putExtra(
         ServerProtocol.DIALOG_PARAM_RETURN_SCOPES, ServerProtocol.DIALOG_RETURN_SCOPES_TRUE)
     if (isForPublish) {
@@ -417,35 +415,30 @@ object NativeProtocol {
     }
   }
 
-  @JvmStatic
-  fun createTokenRefreshIntent(context: Context): Intent? {
-    for (appInfo in facebookAppInfoList) {
-      var intent: Intent? =
-          Intent().setClassName(appInfo.getPackage(), FACEBOOK_TOKEN_REFRESH_ACTIVITY)
-      intent = validateServiceIntent(context, intent, appInfo)
-      if (intent != null) {
-        return intent
-      }
-    }
-    return null
-  }
-
   @JvmStatic fun getLatestKnownVersion(): Int = KNOWN_PROTOCOL_VERSIONS[0]
 
   // Note: be sure this stays sorted in descending order; add new versions at the beginning
   private val KNOWN_PROTOCOL_VERSIONS =
       arrayOf(
           PROTOCOL_VERSION_20210906,
+          PROTOCOL_VERSION_20171115,
           PROTOCOL_VERSION_20170417,
+          PROTOCOL_VERSION_20170411,
+          PROTOCOL_VERSION_20170213,
+          PROTOCOL_VERSION_20161017,
           PROTOCOL_VERSION_20160327,
+          PROTOCOL_VERSION_20150702,
+          PROTOCOL_VERSION_20150401,
           PROTOCOL_VERSION_20141218,
           PROTOCOL_VERSION_20141107,
           PROTOCOL_VERSION_20141028,
           PROTOCOL_VERSION_20141001,
           PROTOCOL_VERSION_20140701,
           PROTOCOL_VERSION_20140324,
+          PROTOCOL_VERSION_20140313,
           PROTOCOL_VERSION_20140204,
           PROTOCOL_VERSION_20131107,
+          PROTOCOL_VERSION_20131024,
           PROTOCOL_VERSION_20130618,
           PROTOCOL_VERSION_20130502,
           PROTOCOL_VERSION_20121101)
@@ -826,7 +819,8 @@ object NativeProtocol {
     abstract fun getPackage(): String
     abstract fun getLoginActivity(): String?
     private var availableVersions: TreeSet<Int>? = null
-    open fun getResponseType(): String = ServerProtocol.DIALOG_RESPONSE_TYPE_CODE
+    open fun getResponseType(): String =
+        ServerProtocol.DIALOG_RESPONSE_TYPE_ID_TOKEN_AND_SIGNED_REQUEST
     open fun onAvailableVersionsNullOrEmpty() = Unit
 
     fun getAvailableVersions(): TreeSet<Int>? {

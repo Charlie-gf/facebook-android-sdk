@@ -1,17 +1,25 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.login
 
 import androidx.test.core.app.ApplicationProvider
 import com.facebook.FacebookException
 import com.facebook.FacebookPowerMockTestCase
 import com.facebook.FacebookSdk
-import com.nhaarman.mockitokotlin2.whenever
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 
-@PrepareForTest(FacebookSdk::class, PKCEUtil::class)
+@PrepareForTest(FacebookSdk::class)
 class PKCEUtilTest : FacebookPowerMockTestCase() {
   // 128 characters valid code verifier
   val VALID_CODE_VERIFIER =

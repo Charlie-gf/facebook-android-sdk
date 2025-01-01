@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.internal
 
 import android.content.Context
@@ -9,14 +17,14 @@ import com.facebook.FacebookPowerMockTestCase
 import com.facebook.FacebookSdk
 import com.facebook.common.R
 import com.facebook.internal.ServerProtocol.INSTAGRAM_OAUTH_PATH
-import com.facebook.login.CustomTabLoginMethodHandler.OAUTH_DIALOG
+import com.facebook.login.CustomTabLoginMethodHandler
 import com.facebook.login.LoginTargetApp
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.whenever
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
@@ -29,7 +37,7 @@ class WebDialogTest : FacebookPowerMockTestCase() {
     const val SDK_VERSION = "12.1.0"
     const val FB_DOMAIN = "facebook.com"
     const val IG_DOMAIN = "instagram.com"
-    const val ACTION = OAUTH_DIALOG
+    const val ACTION = CustomTabLoginMethodHandler.OAUTH_DIALOG
   }
 
   private lateinit var mockContext: Context

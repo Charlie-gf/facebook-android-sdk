@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.appevents.suggestedevents
 
 import android.content.Context
@@ -10,21 +18,20 @@ import com.facebook.appevents.codeless.internal.ViewHierarchy
 import com.facebook.appevents.internal.ViewHierarchyConstants.CLASS_NAME_KEY
 import com.facebook.appevents.internal.ViewHierarchyConstants.TEXT_KEY
 import com.facebook.internal.Utility
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.whenever
 import java.util.concurrent.atomic.AtomicBoolean
 import org.assertj.core.api.Assertions.assertThat
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
 
-@PrepareForTest(
-    FacebookSdk::class, PredictionHistoryManager::class, Utility::class, ViewHierarchy::class)
+@PrepareForTest(FacebookSdk::class, Utility::class, ViewHierarchy::class)
 class PredictionHistoryManagerTest : FacebookPowerMockTestCase() {
   companion object {
     private const val PATH_ID = "path123"

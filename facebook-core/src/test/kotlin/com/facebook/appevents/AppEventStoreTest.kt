@@ -1,20 +1,28 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.appevents
 
 import android.os.Bundle
 import com.facebook.FacebookPowerMockTestCase
 import com.facebook.appevents.internal.AppEventUtility
 import com.facebook.internal.AttributionIdentifiers
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.spy
-import com.nhaarman.mockitokotlin2.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.spy
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 
-@PrepareForTest(AppEventStore::class, AppEventUtility::class, PersistedEvents::class)
+@PrepareForTest(AppEventDiskStore::class, AppEventUtility::class, PersistedEvents::class)
 class AppEventStoreTest : FacebookPowerMockTestCase() {
 
   private lateinit var lastPersistedEvents: PersistedEvents
@@ -26,18 +34,16 @@ class AppEventStoreTest : FacebookPowerMockTestCase() {
 
   @Before
   fun init() {
-    PowerMockito.mockStatic(AppEventStore::class.java)
+    PowerMockito.mockStatic(AppEventDiskStore::class.java)
     PowerMockito.mockStatic(AppEventUtility::class.java)
 
-    whenever(AppEventStore.persistEvents(any(), any())).thenCallRealMethod()
-    whenever(AppEventStore.persistEvents(any())).thenCallRealMethod()
-    whenever(AppEventStore.saveEventsToDisk(any())).thenAnswer {
+    whenever(AppEventDiskStore.saveEventsToDisk(any())).thenAnswer {
       lastPersistedEvents = it.getArgument(0) as PersistedEvents
       null
     }
     val map = hashMapOf(accessTokenAppIdPair to mutableListOf(appevent))
     val persistedEvents = PersistedEvents(map)
-    whenever(AppEventStore.readAndClearStore()).thenReturn(persistedEvents)
+    whenever(AppEventDiskStore.readAndClearStore()).thenReturn(persistedEvents)
     sessionEventsState.addEvent(appevent)
   }
 

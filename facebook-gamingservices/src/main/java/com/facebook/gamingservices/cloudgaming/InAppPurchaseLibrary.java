@@ -1,22 +1,11 @@
-// @lint-ignore LICENSELINT
-/**
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * <p>You are hereby granted a non-exclusive, worldwide, royalty-free license to use, copy, modify,
- * and distribute this software in source code or binary form for use in connection with the web
- * services and APIs provided by Facebook.
- *
- * <p>As with any software that integrates with the Facebook platform, your use of this software is
- * subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be included in all copies
- * or substantial portions of the software.
- *
- * <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
- * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
+
 package com.facebook.gamingservices.cloudgaming;
 
 import android.content.Context;
@@ -28,11 +17,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class InAppPurchaseLibrary {
-  // Valid parameter keys
-  @Deprecated public static final String PRODUCT_ID = SDKConstants.PARAM_PRODUCT_ID;
-  @Deprecated public static final String PURCHASE_TOKEN = SDKConstants.PARAM_PURCHASE_TOKEN;
-  @Deprecated public static final String DEVELOPER_PAYLOAD = SDKConstants.PARAM_DEVELOPER_PAYLOAD;
-
   /**
    * Sets a callback to be triggered when Payments operations are available.
    *
@@ -112,74 +96,62 @@ public class InAppPurchaseLibrary {
   }
 
   /**
-   * Sets a callback to be triggered when Payments operations are available.
+   * Fetches the game's catalog for subscribable products.
    *
-   * @deprecated Replaced by the overloaded function
    * @param context the application context
-   * @param parameters {}
    * @param callback callback for success and error
    */
-  public static void onReady(
-      Context context, @Nullable JSONObject parameters, DaemonRequest.Callback callback) {
-    DaemonRequest.executeAsync(context, parameters, callback, SDKMessageEnum.ON_READY);
+  public static void getSubscribableCatalog(Context context, DaemonRequest.Callback callback) {
+    DaemonRequest.executeAsync(context, null, callback, SDKMessageEnum.GET_SUBSCRIBABLE_CATALOG);
   }
 
   /**
-   * Fetches the game's product catalog.
+   * Begins the purchase flow for a specific subscribable product.
    *
-   * @deprecated Replaced by the overloaded function
    * @param context the application context
-   * @param parameters {}
+   * @param productID the productID of the item to be purchased, obtained from the catalog
    * @param callback callback for success and error
    */
-  public static void getCatalog(
-      Context context, @Nullable JSONObject parameters, DaemonRequest.Callback callback) {
-    DaemonRequest.executeAsync(context, parameters, callback, SDKMessageEnum.GET_CATALOG);
+  public static void purchaseSubscription(
+      Context context, String productID, DaemonRequest.Callback callback) {
+    try {
+      JSONObject parameters = (new JSONObject()).put(SDKConstants.PARAM_PRODUCT_ID, productID);
+      DaemonRequest.executeAsync(
+          context, parameters, callback, SDKMessageEnum.PURCHASE_SUBSCRIPTION);
+    } catch (JSONException e) {
+      SDKLogger.logInternalError(context, SDKMessageEnum.PURCHASE_SUBSCRIPTION, e);
+    }
   }
 
   /**
-   * Fetches all of the player's unconsumed purchases. The game must fetch the current player's
-   * purchases as soon as the client indicates that it is ready to perform payments-related
-   * operations, i.e. at game start. The game can then process and consume any purchases that are
-   * waiting to be consumed.
+   * Fetches all of the player's subscriptions.
    *
-   * @deprecated Replaced by the overloaded function
    * @param context the application context
-   * @param parameters {}
    * @param callback callback for success and error
    */
-  public static void getPurchases(
-      Context context, @Nullable JSONObject parameters, DaemonRequest.Callback callback) {
-    DaemonRequest.executeAsync(context, parameters, callback, SDKMessageEnum.GET_PURCHASES);
+  public static void getSubscriptions(Context context, DaemonRequest.Callback callback) {
+    DaemonRequest.executeAsync(context, null, callback, SDKMessageEnum.GET_SUBSCRIPTIONS);
   }
 
   /**
-   * Begins the purchase flow for a specific product.
+   * Starts the asynchronous process of cancelling an existing subscription. This operation will
+   * only work if the subscription entitlement is active. If the promise is resolved, this is only
+   * an indication that the cancellation has been kicked off and NOT that it has necessarily
+   * succeeded. The subscription's deactivationTime and isEntitlementActive properties should be
+   * queried for the latest status.
    *
-   * @deprecated Replaced by the overloaded function
    * @param context the application context
-   * @param parameters { PRODUCT_ID: <the productID of the item>, DEVELOPER_PAYLOAD (optional):
-   *     <string payload associated with purchase> }
+   * @param purchaseToken the purchase token associated with a transaction
    * @param callback callback for success and error
    */
-  public static void purchase(
-      Context context, JSONObject parameters, DaemonRequest.Callback callback) {
-    DaemonRequest.executeAsync(context, parameters, callback, SDKMessageEnum.PURCHASE);
-  }
-
-  /**
-   * Consumes a specific purchase belonging to the current player. Before provisioning a product's
-   * effects to the player, the game should request the consumption of the purchased product. Once
-   * the purchase is successfully consumed, the game should immediately provide the player with the
-   * effects of their purchase.
-   *
-   * @deprecated Replaced by the overloaded function
-   * @param context the application context
-   * @param parameters { PURCHASE_TOKEN: <the purchase token associated with a transaction> }
-   * @param callback callback for success and error
-   */
-  public static void consumePurchase(
-      Context context, JSONObject parameters, DaemonRequest.Callback callback) {
-    DaemonRequest.executeAsync(context, parameters, callback, SDKMessageEnum.CONSUME_PURCHASE);
+  public static void cancelSubscription(
+      Context context, String purchaseToken, DaemonRequest.Callback callback) {
+    try {
+      JSONObject parameters =
+          (new JSONObject()).put(SDKConstants.PARAM_PURCHASE_TOKEN, purchaseToken);
+      DaemonRequest.executeAsync(context, parameters, callback, SDKMessageEnum.CANCEL_SUBSCRIPTION);
+    } catch (JSONException e) {
+      SDKLogger.logInternalError(context, SDKMessageEnum.CANCEL_SUBSCRIPTION, e);
+    }
   }
 }

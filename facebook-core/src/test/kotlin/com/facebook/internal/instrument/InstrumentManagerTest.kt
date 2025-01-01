@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.internal.instrument
@@ -29,12 +17,12 @@ import com.facebook.internal.instrument.crashreport.CrashHandler
 import com.facebook.internal.instrument.crashshield.CrashShieldHandler
 import com.facebook.internal.instrument.errorreport.ErrorReportHandler
 import com.facebook.internal.instrument.threadcheck.ThreadCheckHandler
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.whenever
-import org.junit.Assert
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
@@ -119,7 +107,7 @@ class InstrumentManagerTest : FacebookPowerMockTestCase() {
   fun `test start with auto logging events disable`() {
     isLogAppEventsEnable = false
     InstrumentManager.start()
-    Assert.assertTrue(listOfCallbacks.isEmpty())
+    assertThat(listOfCallbacks.isEmpty()).isTrue
   }
 
   @Test
@@ -128,11 +116,11 @@ class InstrumentManagerTest : FacebookPowerMockTestCase() {
     whenever(FeatureManager.isEnabled(any())).thenReturn(true)
     InstrumentManager.start()
     listOfCallbacks.forEach { it.onCompleted(true) }
-    Assert.assertTrue(isCrashHandlerEnable)
-    Assert.assertTrue(isExceptionAnalyzerEnable)
-    Assert.assertTrue(isErrorReportHandlerEnable)
-    Assert.assertTrue(isThreadCheckHandlerEnable)
-    Assert.assertTrue(isCrashShieldHandlerEnable)
-    Assert.assertTrue(isAnrHandlerEnable)
+    assertThat(isCrashHandlerEnable).isTrue
+    assertThat(isExceptionAnalyzerEnable).isTrue
+    assertThat(isErrorReportHandlerEnable).isTrue
+    assertThat(isThreadCheckHandlerEnable).isTrue
+    assertThat(isCrashShieldHandlerEnable).isTrue
+    assertThat(isAnrHandlerEnable).isTrue
   }
 }

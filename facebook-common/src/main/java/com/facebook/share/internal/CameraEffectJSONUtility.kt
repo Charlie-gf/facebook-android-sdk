@@ -1,4 +1,11 @@
-// Copyright 2004-present Facebook. All Rights Reserved.
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.share.internal
 
 import com.facebook.share.model.CameraEffectArguments
@@ -69,17 +76,17 @@ object CameraEffectJSONUtility {
                 ) {
                   // Only strings are supported for now
                   val jsonArray = value as JSONArray
-                  val argsArray = arrayOfNulls<String>(jsonArray.length())
+                  val argsList = mutableListOf<String>()
                   for (i in 0 until jsonArray.length()) {
                     val current = jsonArray[i]
                     if (current is String) {
-                      argsArray[i] = current
+                      argsList.add(current)
                     } else {
                       throw IllegalArgumentException(
                           "Unexpected type in an array: " + current.javaClass)
                     }
                   }
-                  builder.putArgument(key, argsArray)
+                  builder.putArgument(key, argsList.toTypedArray())
                 }
 
                 @Throws(JSONException::class)

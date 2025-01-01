@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.appevents
 
 import android.os.Bundle
@@ -5,22 +13,21 @@ import androidx.test.core.app.ApplicationProvider
 import com.facebook.FacebookPowerMockTestCase
 import com.facebook.FacebookSdk
 import com.facebook.internal.AttributionIdentifiers
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.whenever
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
 import org.powermock.reflect.internal.WhiteboxImpl
 
-@PrepareForTest(AppEventCollection::class, FacebookSdk::class)
+@PrepareForTest(FacebookSdk::class)
 class AppEventCollectionTest : FacebookPowerMockTestCase() {
-
   private val mockExecutor = FacebookSerialExecutor()
 
   private lateinit var appEventCollection: AppEventCollection
@@ -57,7 +64,7 @@ class AppEventCollectionTest : FacebookPowerMockTestCase() {
   @Test
   fun `test functions addEvent and getters functions`() {
     // Before add any event, the collection should be empty
-    assertTrue(appEventCollection.keySet().isEmpty())
+    assertThat(appEventCollection.keySet().isEmpty()).isTrue
     assertNull(appEventCollection.get(accessTokenAppIdPair))
     assertEquals(0, appEventCollection.eventCount)
 
@@ -74,7 +81,7 @@ class AppEventCollectionTest : FacebookPowerMockTestCase() {
     val map = hashMapOf(accessTokenAppIdPair2 to mutableListOf(appEvent2))
     val persistedEvents = PersistedEvents(map)
     // Before add the persisted event, the collection should be empty
-    assertTrue(appEventCollection.keySet().isEmpty())
+    assertThat(appEventCollection.keySet().isEmpty()).isTrue
     assertEquals(0, appEventCollection.eventCount)
 
     // Add the first persisted event to the collection

@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook
@@ -24,25 +12,26 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
 import com.facebook.internal.Utility
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.never
-import com.nhaarman.mockitokotlin2.times
-import com.nhaarman.mockitokotlin2.verify
-import com.nhaarman.mockitokotlin2.verifyZeroInteractions
-import com.nhaarman.mockitokotlin2.whenever
 import java.util.Date
+import org.assertj.core.api.Assertions.assertThat
 import org.json.JSONObject
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyZeroInteractions
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.api.support.membermodification.MemberModifier
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.robolectric.RuntimeEnvironment
 
-@PrepareForTest(
-    AccessTokenCache::class, FacebookSdk::class, LegacyTokenHelper::class, Utility::class)
+@PrepareForTest(FacebookSdk::class, LegacyTokenHelper::class, Utility::class)
 class AccessTokenCacheTest : FacebookPowerMockTestCase() {
   companion object {
     private const val TOKEN_STRING = "A token of my esteem"
@@ -145,7 +134,7 @@ class AccessTokenCacheTest : FacebookPowerMockTestCase() {
         .thenReturn(AccessTokenTestHelper.toLegacyCacheBundle(accessToken))
     val cache = AccessTokenCache(sharedPreferences, cachingStrategyFactory)
     cache.load()
-    Assert.assertTrue(sharedPreferences.contains(AccessTokenCache.CACHED_ACCESS_TOKEN_KEY))
+    assertThat(sharedPreferences.contains(AccessTokenCache.CACHED_ACCESS_TOKEN_KEY)).isTrue
     val savedAccessToken =
         AccessToken.createFromJSONObject(
             JSONObject(
@@ -171,7 +160,7 @@ class AccessTokenCacheTest : FacebookPowerMockTestCase() {
     val cache = AccessTokenCache(sharedPreferences, cachingStrategyFactory)
     cache.save(accessToken)
     verify(cachingStrategy, never()).save(any())
-    Assert.assertTrue(sharedPreferences.contains(AccessTokenCache.CACHED_ACCESS_TOKEN_KEY))
+    assertThat(sharedPreferences.contains(AccessTokenCache.CACHED_ACCESS_TOKEN_KEY)).isTrue
     val savedAccessToken =
         AccessToken.createFromJSONObject(
             JSONObject(
@@ -186,7 +175,7 @@ class AccessTokenCacheTest : FacebookPowerMockTestCase() {
     val cache = AccessTokenCache(sharedPreferences, cachingStrategyFactory)
     cache.save(accessToken)
     cache.clear()
-    Assert.assertFalse(sharedPreferences.contains(AccessTokenCache.CACHED_ACCESS_TOKEN_KEY))
+    assertThat(sharedPreferences.contains(AccessTokenCache.CACHED_ACCESS_TOKEN_KEY)).isFalse
     verify(cachingStrategy, never()).clear()
   }
 
@@ -197,7 +186,7 @@ class AccessTokenCacheTest : FacebookPowerMockTestCase() {
     val cache = AccessTokenCache(sharedPreferences, cachingStrategyFactory)
     cache.save(accessToken)
     cache.clear()
-    Assert.assertFalse(sharedPreferences.contains(AccessTokenCache.CACHED_ACCESS_TOKEN_KEY))
+    assertThat(sharedPreferences.contains(AccessTokenCache.CACHED_ACCESS_TOKEN_KEY)).isFalse
     verify(cachingStrategy, times(1)).clear()
   }
 
@@ -216,5 +205,18 @@ class AccessTokenCacheTest : FacebookPowerMockTestCase() {
         EXPIRES,
         LAST_REFRESH,
         null)
+  }
+
+  @Test
+  fun `test the token caching strategy factory will create a cache from the application context`() {
+    val mockContext = mock<Context>()
+    whenever(mockContext.applicationContext).thenReturn(mockContext)
+    whenever(mockContext.getSharedPreferences(any<String>(), any())).thenReturn(mock())
+    whenever(FacebookSdk.getApplicationContext()).thenReturn(mockContext)
+
+    val factory = AccessTokenCache.SharedPreferencesTokenCachingStrategyFactory()
+    factory.create()
+    verify(mockContext)
+        .getSharedPreferences(eq(LegacyTokenHelper.DEFAULT_CACHE_KEY), eq(Context.MODE_PRIVATE))
   }
 }

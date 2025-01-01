@@ -1,20 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use, copy, modify,
- * and distribute this software in source code or binary form for use in connection with the web
- * services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of this software is
- * subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be included in all copies
- * or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
- * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.appevents.restrictivedatafilter
@@ -28,22 +17,19 @@ import com.facebook.appevents.restrictivedatafilter.RestrictiveDataManager.proce
 import com.facebook.internal.FetchedAppSettings
 import com.facebook.internal.FetchedAppSettingsManager
 import com.facebook.internal.FetchedAppSettingsManager.queryAppSettings
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.whenever
+import org.assertj.core.api.Assertions.assertThat
 import org.json.JSONObject
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
 
-@PrepareForTest(
-    RestrictiveDataManager::class,
-    FacebookSdk::class,
-    FetchedAppSettings::class,
-    FetchedAppSettingsManager::class)
+@PrepareForTest(FacebookSdk::class, FetchedAppSettings::class, FetchedAppSettingsManager::class)
 class RestrictiveDataManagerTest : FacebookPowerMockTestCase() {
 
   companion object {
@@ -55,7 +41,6 @@ class RestrictiveDataManagerTest : FacebookPowerMockTestCase() {
   @Before
   override fun setup() {
     super.setup()
-    PowerMockito.spy(RestrictiveDataManager::class.java)
     PowerMockito.mockStatic(FacebookSdk::class.java)
     whenever(FacebookSdk.getApplicationId()).thenReturn(MOCK_APP_ID)
     Whitebox.setInternalState(RestrictiveDataManager::class.java, "enabled", true)
@@ -95,7 +80,7 @@ class RestrictiveDataManagerTest : FacebookPowerMockTestCase() {
     Assert.assertEquals("fb_test_event", rule.eventName)
     Assert.assertEquals(expectedParam, rule.restrictiveParams)
     Assert.assertEquals(1, restrictedEvents.size.toLong())
-    Assert.assertTrue(restrictedEvents.contains("manual_initiated_checkout"))
+    assertThat(restrictedEvents).contains("manual_initiated_checkout")
   }
 
   @Test
@@ -110,11 +95,11 @@ class RestrictiveDataManagerTest : FacebookPowerMockTestCase() {
     Assert.assertEquals(eventParam, mockEventParam)
     mockEventParam = eventParam
     processParameters(mockEventParam, "fb_restrictive_event")
-    Assert.assertTrue(mockEventParam.containsKey("key1"))
-    Assert.assertTrue(mockEventParam.containsKey("key2"))
-    Assert.assertTrue(mockEventParam.containsKey("_restrictedParams"))
-    Assert.assertFalse(mockEventParam.containsKey("last_name"))
-    Assert.assertFalse(mockEventParam.containsKey("first_name"))
+    assertThat(mockEventParam.containsKey("key1")).isTrue
+    assertThat(mockEventParam.containsKey("key2")).isTrue
+    assertThat(mockEventParam.containsKey("_restrictedParams")).isTrue
+    assertThat(mockEventParam.containsKey("last_name")).isFalse
+    assertThat(mockEventParam.containsKey("first_name")).isFalse
   }
 
   @Test

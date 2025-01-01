@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.internal
@@ -23,7 +11,6 @@ package com.facebook.internal
 import androidx.test.core.app.ApplicationProvider
 import com.facebook.FacebookPowerMockTestCase
 import com.facebook.FacebookSdk
-import com.nhaarman.mockitokotlin2.whenever
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
@@ -32,12 +19,13 @@ import java.util.Random
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
-import junit.framework.TestCase
 import kotlin.concurrent.withLock
 import kotlin.math.min
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito.mockStatic
 import org.powermock.core.classloader.annotations.PrepareForTest
 
@@ -188,8 +176,8 @@ class FileLruCacheTest : FacebookPowerMockTestCase() {
         // than the data content but not more than twice as large.  This guarantees
         // that sizeInBytes is doing at least approximately the right thing.
         val totalDataSize = (i + 1) * dataSize
-        TestCase.assertTrue(cache.sizeInBytesForTest() > totalDataSize)
-        TestCase.assertTrue(cache.sizeInBytesForTest() < 2 * totalDataSize)
+        assertThat(cache.sizeInBytesForTest() > totalDataSize).isTrue
+        assertThat(cache.sizeInBytesForTest() < 2 * totalDataSize).isTrue
       }
       for (i in 0 until count) {
         checkValue(cache, i.toString(), data)
@@ -219,8 +207,8 @@ class FileLruCacheTest : FacebookPowerMockTestCase() {
         // This changes verification such that the final cache size lands somewhere
         // between half and full quota.
         val totalDataSize = (i + 1) * dataSize
-        TestCase.assertTrue(cache.sizeInBytesForTest() > min(totalDataSize, cacheSize / 2))
-        TestCase.assertTrue(cache.sizeInBytesForTest() < min(2 * totalDataSize, cacheSize))
+        assertThat(cache.sizeInBytesForTest() > min(totalDataSize, cacheSize / 2)).isTrue
+        assertThat(cache.sizeInBytesForTest() < min(2 * totalDataSize, cacheSize)).isTrue
       }
 
       // sleep for a bit to make sure the trim finishes

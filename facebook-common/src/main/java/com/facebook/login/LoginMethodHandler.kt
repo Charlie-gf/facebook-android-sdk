@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.login
@@ -103,7 +91,7 @@ abstract class LoginMethodHandler : Parcelable {
   }
 
   protected open fun logWebLoginCompleted(e2e: String?) {
-    val applicationId = loginClient.getPendingRequest().applicationId
+    val applicationId = loginClient.pendingRequest?.applicationId ?: FacebookSdk.getApplicationId()
     val logger = InternalAppEventsLogger(loginClient.activity, applicationId)
     val parameters = Bundle()
     parameters.putString(AnalyticsEvents.PARAMETER_WEB_LOGIN_E2E, e2e)
@@ -132,13 +120,14 @@ abstract class LoginMethodHandler : Parcelable {
 
     // PKCE code exchange step for access_token and authentication_token
     val codeExchangeRequest =
-        code?.let { createCodeExchangeRequest(it, this.getRedirectUrl(), request.codeVerifier) }
+        code?.let {
+          createCodeExchangeRequest(it, this.getRedirectUrl(), request.codeVerifier ?: "")
+        }
             ?: throw FacebookException("Failed to create code exchange request")
 
     val PKCEResponse = codeExchangeRequest.executeAndWait()
-    if (PKCEResponse.error != null) {
-      val requestError = PKCEResponse.error
-      throw requestError?.let { FacebookServiceException(it, requestError.errorMessage) }!!
+    PKCEResponse.error?.let { requestError ->
+      throw FacebookServiceException(requestError, requestError.errorMessage)
     }
 
     // add result of the code exchange to result bundle
@@ -152,10 +141,10 @@ abstract class LoginMethodHandler : Parcelable {
       values.putString(ServerProtocol.DIALOG_PARAM_ACCESS_TOKEN, accessTokenString)
 
       // add AuthenticationToken to values
-      if (PKCEResultJson?.has(ServerProtocol.DIALOG_PARAM_AUTHENTICATION_TOKEN)) {
+      if (PKCEResultJson.has(ServerProtocol.DIALOG_PARAM_AUTHENTICATION_TOKEN)) {
         values.putString(
             ServerProtocol.DIALOG_PARAM_AUTHENTICATION_TOKEN,
-            PKCEResultJson?.getString(ServerProtocol.DIALOG_PARAM_AUTHENTICATION_TOKEN))
+            PKCEResultJson.getString(ServerProtocol.DIALOG_PARAM_AUTHENTICATION_TOKEN))
       }
     } catch (ex: JSONException) {
       throw FacebookException("Fail to process code exchange response: " + ex.message)

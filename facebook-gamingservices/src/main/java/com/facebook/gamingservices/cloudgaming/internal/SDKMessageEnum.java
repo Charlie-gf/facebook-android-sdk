@@ -1,24 +1,11 @@
-// (c) Facebook, Inc. and its affiliates. Confidential and proprietary.
-
-// @lint-ignore LICENSELINT
-/**
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * <p>You are hereby granted a non-exclusive, worldwide, royalty-free license to use, copy, modify,
- * and distribute this software in source code or binary form for use in connection with the web
- * services and APIs provided by Facebook.
- *
- * <p>As with any software that integrates with the Facebook platform, your use of this software is
- * subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be included in all copies
- * or substantial portions of the software.
- *
- * <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
- * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
+
 package com.facebook.gamingservices.cloudgaming.internal;
 
 import androidx.annotation.Nullable;
@@ -34,6 +21,10 @@ public enum SDKMessageEnum {
   PURCHASE("purchase"),
   CONSUME_PURCHASE("consumePurchase"),
   ON_READY("onReady"),
+  GET_SUBSCRIBABLE_CATALOG("getSubscribableCatalog"),
+  PURCHASE_SUBSCRIPTION("purchaseSubscription"),
+  GET_SUBSCRIPTIONS("getSubscriptions"),
+  CANCEL_SUBSCRIPTION("cancelSubscription"),
   LOAD_INTERSTITIAL_AD("loadInterstitialAd"),
   LOAD_REWARDED_VIDEO("loadRewardedVideo"),
   SHOW_INTERSTITIAL_AD("showInterstitialAd"),
@@ -61,7 +52,8 @@ public enum SDKMessageEnum {
   CONTEXT_CHOOSE("contextChoose"),
   CONTEXT_CREATE("contextCreate"),
   CONTEXT_GET_ID("contextGetID"),
-  DEBUG_PRINT("debugPrint");
+  DEBUG_PRINT("debugPrint"),
+  GET_COUNTRY_ISO("getCountryISO");
 
   private final String mStringValue;
 

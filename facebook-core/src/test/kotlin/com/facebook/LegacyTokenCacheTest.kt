@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook
@@ -25,15 +13,16 @@ import com.facebook.FacebookTestUtility.assertEqualContentsWithoutOrder
 import com.facebook.FacebookTestUtility.assertSameCollectionContents
 import com.facebook.FacebookTestUtility.nowPlusSeconds
 import com.facebook.internal.Utility
-import com.nhaarman.mockitokotlin2.whenever
 import java.lang.reflect.Array
 import java.util.ArrayList
 import java.util.Date
 import java.util.Random
+import org.assertj.core.api.Assertions.assertThat
 import org.json.JSONObject
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.api.support.membermodification.MemberModifier
 import org.powermock.core.classloader.annotations.PrepareForTest
@@ -177,7 +166,7 @@ class LegacyTokenCacheTest : FacebookPowerMockTestCase() {
     assertSameCollectionContents(permissions, accessToken.permissions)
     Assert.assertEquals(token, accessToken.token)
     Assert.assertEquals(AccessTokenSource.FACEBOOK_APPLICATION_NATIVE, accessToken.source)
-    Assert.assertTrue(!accessToken.isExpired)
+    assertThat(accessToken.isExpired).isFalse
     val cachedBundle = AccessTokenTestHelper.toLegacyCacheBundle(accessToken)
     assertEqualContentsWithoutOrder(bundle, cachedBundle)
   }
@@ -220,7 +209,7 @@ class LegacyTokenCacheTest : FacebookPowerMockTestCase() {
       checkNotNull(a1)
       checkNotNull(a2)
       Assert.assertEquals(a1.javaClass, a2.javaClass)
-      Assert.assertTrue("Not an array", a1.javaClass.isArray)
+      assertThat(a1.javaClass.isArray).isTrue
       val length = Array.getLength(a1)
       Assert.assertEquals(length.toLong(), Array.getLength(a2).toLong())
       for (i in 0 until length) {
@@ -238,8 +227,8 @@ class LegacyTokenCacheTest : FacebookPowerMockTestCase() {
       while (i1.hasNext() && i2.hasNext()) {
         Assert.assertEquals(i1.next(), i2.next())
       }
-      Assert.assertTrue("Lists not of the same length", !i1.hasNext())
-      Assert.assertTrue("Lists not of the same length", !i2.hasNext())
+      assertThat(i1.hasNext()).isFalse // "Lists not of the same length"
+      assertThat(i2.hasNext()).isFalse // "Lists not of the same length"
     }
 
     private fun putInt(key: String, bundle: Bundle) {

@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.internal.instrument.crashreport
 
 import android.content.Context
@@ -7,13 +15,9 @@ import com.facebook.FacebookSdk
 import com.facebook.GraphRequest
 import com.facebook.internal.instrument.InstrumentData
 import com.facebook.internal.instrument.InstrumentUtility
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.isNull
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.verify
-import com.nhaarman.mockitokotlin2.whenever
 import java.io.File
 import java.util.UUID
+import org.assertj.core.api.Assertions.assertThat
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
@@ -21,6 +25,11 @@ import org.junit.After
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.isNull
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
@@ -72,7 +81,7 @@ class CrashHandlerTest : FacebookPowerMockTestCase() {
           null
         }
     CrashHandler.enable()
-    Assert.assertFalse(hitSendReports)
+    assertThat(hitSendReports).isFalse
   }
 
   @Test
@@ -80,7 +89,7 @@ class CrashHandlerTest : FacebookPowerMockTestCase() {
     CrashHandler.enable()
     val handler = Thread.getDefaultUncaughtExceptionHandler()
     Assert.assertNotNull(handler)
-    Assert.assertTrue(handler is CrashHandler)
+    assertThat(handler is CrashHandler).isTrue
   }
 
   @Test

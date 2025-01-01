@@ -1,4 +1,10 @@
-// (c) Facebook, Inc. and its affiliates. Confidential and proprietary.
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 
 package com.facebook.gamingservices
 
@@ -22,6 +28,16 @@ class TournamentUpdater {
    * API call succeed.
    */
   fun update(tournament: Tournament, score: Number): TaskCompletionSource<Boolean>? {
+    return update(tournament.identifier, score)
+  }
+
+  /**
+   * Attempts to update a tournament with the provided identifier and score
+   *
+   * @return The task completion source that contains a boolean value on whether or not the Graph
+   * API call succeed.
+   */
+  fun update(identifier: String, score: Number): TaskCompletionSource<Boolean>? {
     val currentAccessToken: AccessToken? = getCurrentAccessToken()
     if (currentAccessToken == null || currentAccessToken.isExpired) {
       throw FacebookException("Attempted to fetch tournament with an invalid access token")
@@ -34,7 +50,7 @@ class TournamentUpdater {
     }
 
     val task: TaskCompletionSource<Boolean> = TaskCompletionSource<Boolean>()
-    val graphPath = "${tournament.identifier}/update_score"
+    val graphPath = "${identifier}/update_score"
     val params = Bundle()
     params.putInt("score", score.toInt())
     val request =

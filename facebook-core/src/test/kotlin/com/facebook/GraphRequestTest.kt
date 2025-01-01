@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook
@@ -31,13 +19,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.facebook.internal.AttributionIdentifiers
 import com.facebook.internal.Logger
 import com.facebook.internal.ServerProtocol
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.eq
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.never
-import com.nhaarman.mockitokotlin2.times
-import com.nhaarman.mockitokotlin2.verify
-import com.nhaarman.mockitokotlin2.whenever
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileNotFoundException
@@ -53,6 +34,13 @@ import org.assertj.core.api.Assertions.assertThat
 import org.json.JSONObject
 import org.junit.Before
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 import org.powermock.reflect.Whitebox
@@ -69,6 +57,8 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
   private val mockInstagramTokenString = "IGasdf"
   private val mockAppTokenString = mockAppID + "|" + mockClientToken
   private val mockUserID = "1000"
+  private lateinit var mockHttpURLConnection: HttpURLConnection
+  private lateinit var mockHttpURLConnectionDataStream: PipedInputStream
 
   @Before
   override fun setup() {
@@ -84,6 +74,11 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
     whenever(FacebookSdk.getFacebookDomain()).thenCallRealMethod()
     whenever(FacebookSdk.getGraphApiVersion()).thenCallRealMethod()
     mockLoggedInWithTokenDomain("facebook")
+
+    mockHttpURLConnectionDataStream = PipedInputStream()
+    mockHttpURLConnection = mock()
+    val pipedOutputStreamForMockConnection = PipedOutputStream(mockHttpURLConnectionDataStream)
+    whenever(mockHttpURLConnection.outputStream).thenReturn(pipedOutputStreamForMockConnection)
   }
 
   @Test
@@ -97,13 +92,13 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
     val urlPost = singlePostRequest.urlForSingleRequest
     val urlBatch = singlePostRequest.relativeUrlForBatchedRequest
     var args = Uri.parse(urlGet).queryParameterNames
-    assertThat(args.contains("sample_key")).isTrue
+    assertThat(args).contains("sample_key")
     args = Uri.parse(urlPost).queryParameterNames
     assertThat(args.isEmpty()).isTrue
 
     // Batch URL should contain parameters
     args = Uri.parse(urlBatch).queryParameterNames
-    assertThat(args.contains("sample_key")).isTrue
+    assertThat(args).contains("sample_key")
   }
 
   @Test
@@ -115,8 +110,8 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
     val batchRequestUrl = igGraphRequest.relativeUrlForBatchedRequest
 
     assertThat(singleRequestUrl).contains("graph.instagram.com")
-    assertThat(singleRequestUrl.contains(FacebookSdk.getGraphApiVersion())).isTrue
-    assertThat(batchRequestUrl.contains(FacebookSdk.getGraphApiVersion())).isTrue
+    assertThat(singleRequestUrl).contains(FacebookSdk.getGraphApiVersion())
+    assertThat(batchRequestUrl).contains(FacebookSdk.getGraphApiVersion())
   }
 
   @Test
@@ -270,7 +265,7 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
 
     val requestUrl = request.urlForSingleRequest
     assertThat(requestUrl).contains("graph.instagram.com")
-    assertThat(requestUrl.contains(FacebookSdk.getGraphApiVersion())).isTrue
+    assertThat(requestUrl).contains(FacebookSdk.getGraphApiVersion())
   }
 
   @Test
@@ -443,6 +438,71 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
     val request =
         GraphRequest.newCustomAudienceThirdPartyIdRequest(
             mock(), FacebookSdk.getApplicationContext(), "mockAppID", null)
+    assertThat(request.graphPath).isEqualTo(expectedRequest.graphPath)
+    assertThat(request.httpMethod).isEqualTo(expectedRequest.httpMethod)
+    FacebookTestUtility.assertEqualContentsWithoutOrder(
+        expectedRequest.parameters, request.parameters)
+  }
+
+  @Test(expected = FacebookException::class)
+  fun `test request for custom audience third party ID when the access token and attribution identifier are not available`() {
+    val mockAttributionIdentifiersCompanionObject = mock<AttributionIdentifiers.Companion>()
+    whenever(mockAttributionIdentifiersCompanionObject.getAttributionIdentifiers(any()))
+        .thenReturn(null)
+    Whitebox.setInternalState(
+        AttributionIdentifiers::class.java, "Companion", mockAttributionIdentifiersCompanionObject)
+    GraphRequest.newCustomAudienceThirdPartyIdRequest(
+        null, FacebookSdk.getApplicationContext(), "123456789", null)
+  }
+
+  @Test
+  fun `test request for custom audience third party ID when the access token is not available and attribution id is available`() {
+    val mockAttributionIdentifiersCompanionObject = mock<AttributionIdentifiers.Companion>()
+    val mockAttributionIdentifiers = mock<AttributionIdentifiers>()
+    whenever(mockAttributionIdentifiersCompanionObject.getAttributionIdentifiers(any()))
+        .thenReturn(mockAttributionIdentifiers)
+    Whitebox.setInternalState(
+        AttributionIdentifiers::class.java, "Companion", mockAttributionIdentifiersCompanionObject)
+    whenever(mockAttributionIdentifiers.attributionId).thenReturn("test_attribution_id")
+    val request =
+        GraphRequest.newCustomAudienceThirdPartyIdRequest(
+            null, FacebookSdk.getApplicationContext(), "123456789", null)
+    assertThat(request.graphPath).isEqualTo("123456789/custom_audience_third_party_id")
+    assertThat(request.parameters.getString("udid")).isEqualTo("test_attribution_id")
+  }
+
+  @Test
+  fun `test request for custom audience third party ID when the access token is not available and android adid is available`() {
+    val mockAttributionIdentifiersCompanionObject = mock<AttributionIdentifiers.Companion>()
+    val mockAttributionIdentifiers = mock<AttributionIdentifiers>()
+    whenever(mockAttributionIdentifiersCompanionObject.getAttributionIdentifiers(any()))
+        .thenReturn(mockAttributionIdentifiers)
+    Whitebox.setInternalState(
+        AttributionIdentifiers::class.java, "Companion", mockAttributionIdentifiersCompanionObject)
+    whenever(mockAttributionIdentifiers.androidAdvertiserId).thenReturn("test_android_adid")
+    val request =
+        GraphRequest.newCustomAudienceThirdPartyIdRequest(
+            null, FacebookSdk.getApplicationContext(), "123456789", null)
+    assertThat(request.graphPath).isEqualTo("123456789/custom_audience_third_party_id")
+    assertThat(request.parameters.getString("udid")).isEqualTo("test_android_adid")
+  }
+
+  @Test
+  fun `test request for custom audience third party id will get appid from the access token`() {
+    val mockAttributionIdentifiersCompanionObject = mock<AttributionIdentifiers.Companion>()
+    whenever(mockAttributionIdentifiersCompanionObject.getAttributionIdentifiers(any()))
+        .thenReturn(null)
+    Whitebox.setInternalState(
+        AttributionIdentifiers::class.java, "Companion", mockAttributionIdentifiersCompanionObject)
+    whenever(FacebookSdk.getLimitEventAndDataUsage(any<Context>())).thenReturn(false)
+    val mockAccessToken = mock<AccessToken>()
+    whenever(mockAccessToken.applicationId).thenReturn("111111111")
+    val expectedRequest =
+        GraphRequest(
+            null, "111111111/custom_audience_third_party_id", Bundle(), HttpMethod.GET, null)
+    val request =
+        GraphRequest.newCustomAudienceThirdPartyIdRequest(
+            mockAccessToken, FacebookSdk.getApplicationContext(), null)
     assertThat(request.graphPath).isEqualTo(expectedRequest.graphPath)
     assertThat(request.httpMethod).isEqualTo(expectedRequest.httpMethod)
     FacebookTestUtility.assertEqualContentsWithoutOrder(
@@ -740,10 +800,7 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
 
   @Test
   fun `test serializing request batch to url connection`() {
-    val pipedInputStream = PipedInputStream()
-    val pipedOutputStream = PipedOutputStream(pipedInputStream)
-    val mockConnection = mock<HttpURLConnection>()
-    whenever(mockConnection.outputStream).thenReturn(pipedOutputStream)
+    val mockConnection = mockHttpURLConnection
     whenever(mockConnection.url).thenReturn(URL("https", "graph.facebook.com", 443, "testfile"))
     whenever(mockConnection.requestMethod).thenReturn(HttpMethod.POST.name)
     whenever(mockConnection.getRequestProperty(any())).thenReturn("test property value")
@@ -754,7 +811,7 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
             GraphRequest.newGraphPathRequest(null, "testGetPath", null))
     GraphRequest.serializeToUrlConnection(requestBatch, mockConnection)
     verify(mockConnection).requestMethod = HttpMethod.POST.name
-    val dataInputStream = BufferedInputStream(GZIPInputStream(pipedInputStream))
+    val dataInputStream = BufferedInputStream(GZIPInputStream(mockHttpURLConnectionDataStream))
     val data = dataInputStream.reader().readText()
     val decodeData = URLDecoder.decode(data, "UTF-8")
     // check requests are in the decoded data
@@ -768,10 +825,7 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
 
   @Test
   fun `test serializing bytearray attachment to url connection`() {
-    val pipedInputStream = PipedInputStream()
-    val pipedOutputStream = PipedOutputStream(pipedInputStream)
-    val mockConnection = mock<HttpURLConnection>()
-    whenever(mockConnection.outputStream).thenReturn(pipedOutputStream)
+    val mockConnection = mockHttpURLConnection
     whenever(mockConnection.url).thenReturn(URL("https", "graph.facebook.com", 443, "testfile"))
     whenever(mockConnection.requestMethod).thenReturn(HttpMethod.POST.name)
     whenever(mockConnection.getRequestProperty(any())).thenReturn("test property value")
@@ -780,11 +834,74 @@ class GraphRequestTest : FacebookPowerMockTestCase() {
     val requestBatch = GraphRequestBatch(request)
     GraphRequest.serializeToUrlConnection(requestBatch, mockConnection)
     verify(mockConnection).requestMethod = HttpMethod.POST.name
-    val dataInputStream = BufferedInputStream((pipedInputStream))
+    val dataInputStream = BufferedInputStream((mockHttpURLConnectionDataStream))
     val data = dataInputStream.reader().readText()
     val decodeData = URLDecoder.decode(data, "UTF-8")
     // check requests are in the decoded data
     assertThat(decodeData).contains("test attachment data")
+  }
+
+  @Test
+  fun `test serializing graph object to url connection`() {
+    val mockConnection = mockHttpURLConnection
+    whenever(mockConnection.url).thenReturn(URL("https", "graph.facebook.com", 443, "testfile"))
+    whenever(mockConnection.requestMethod).thenReturn(HttpMethod.POST.name)
+    whenever(mockConnection.getRequestProperty(any())).thenReturn("test property value")
+
+    val graphObjectToSerialized =
+        JSONObject("""
+      {"v1":1,"v2":"test","v3":true,"v4":[1,2,3]}
+      """.trim())
+    val request = GraphRequest.newPostRequest(null, "testPath", graphObjectToSerialized, null)
+    GraphRequest.serializeToUrlConnection(GraphRequestBatch(request), mockConnection)
+
+    val dataInputStream = BufferedInputStream(GZIPInputStream(mockHttpURLConnectionDataStream))
+    val data = dataInputStream.reader().readText()
+    val decodeData = URLDecoder.decode(data, "UTF-8")
+    val dataItems = decodeData.split("&")
+    assertThat(dataItems)
+        .containsAll(listOf("v1=1", "v2=test", "v3=true", "v4[0]=1", "v4[1]=2", "v4[2]=3"))
+  }
+
+  @Test
+  fun `test serializing graph object of id reference to url connection`() {
+    val mockConnection = mockHttpURLConnection
+    whenever(mockConnection.url).thenReturn(URL("https", "graph.facebook.com", 443, "testfile"))
+    whenever(mockConnection.requestMethod).thenReturn(HttpMethod.POST.name)
+    whenever(mockConnection.getRequestProperty(any())).thenReturn("test property value")
+
+    val graphObjectToSerialized = JSONObject("""
+      {"obj":{"id":"12345"}}
+      """.trim())
+    val request = GraphRequest.newPostRequest(null, "testPath", graphObjectToSerialized, null)
+    GraphRequest.serializeToUrlConnection(GraphRequestBatch(request), mockConnection)
+
+    val dataInputStream = BufferedInputStream(GZIPInputStream(mockHttpURLConnectionDataStream))
+    val data = dataInputStream.reader().readText()
+    val decodeData = URLDecoder.decode(data, "UTF-8")
+    val dataItems = decodeData.split("&")
+    assertThat(dataItems).contains("obj=12345")
+  }
+
+  @Test
+  fun `test serializing graph object of url reference to url connection`() {
+    val mockConnection = mockHttpURLConnection
+    whenever(mockConnection.url).thenReturn(URL("https", "graph.facebook.com", 443, "testfile"))
+    whenever(mockConnection.requestMethod).thenReturn(HttpMethod.POST.name)
+    whenever(mockConnection.getRequestProperty(any())).thenReturn("test property value")
+
+    val graphObjectToSerialized =
+        JSONObject("""
+      {"obj":{"url":"http://facebook.com/"}}
+      """.trim())
+    val request = GraphRequest.newPostRequest(null, "testPath", graphObjectToSerialized, null)
+    GraphRequest.serializeToUrlConnection(GraphRequestBatch(request), mockConnection)
+
+    val dataInputStream = BufferedInputStream(GZIPInputStream(mockHttpURLConnectionDataStream))
+    val data = dataInputStream.reader().readText()
+    val decodeData = URLDecoder.decode(data, "UTF-8")
+    val dataItems = decodeData.split("&")
+    assertThat(dataItems).contains("obj=http://facebook.com/")
   }
 
   @Test

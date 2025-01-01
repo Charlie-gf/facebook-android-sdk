@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.share.widget;
@@ -25,10 +13,7 @@ import android.util.AttributeSet;
 import androidx.appcompat.content.res.AppCompatResources;
 import com.facebook.internal.AnalyticsEvents;
 import com.facebook.internal.CallbackManagerImpl;
-import com.facebook.internal.FacebookDialogBase;
 import com.facebook.share.R;
-import com.facebook.share.Sharer;
-import com.facebook.share.model.ShareContent;
 
 /**
  * A button to share content on Facebook. Tapping the receiver will invoke the {@link
@@ -74,7 +59,7 @@ public final class ShareButton extends ShareButtonBase {
   }
 
   @Override
-  protected FacebookDialogBase<ShareContent, Sharer.Result> getDialog() {
+  protected ShareDialog getDialog() {
     final ShareDialog dialog;
     if (ShareButton.this.getFragment() != null) {
       dialog = new ShareDialog(ShareButton.this.getFragment(), getRequestCode());

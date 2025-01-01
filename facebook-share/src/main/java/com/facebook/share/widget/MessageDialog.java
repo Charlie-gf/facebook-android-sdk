@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.share.widget;
@@ -31,7 +19,6 @@ import com.facebook.internal.AppCall;
 import com.facebook.internal.CallbackManagerImpl;
 import com.facebook.internal.DialogFeature;
 import com.facebook.internal.DialogPresenter;
-import com.facebook.internal.FacebookDialogBase;
 import com.facebook.internal.FragmentWrapper;
 import com.facebook.share.Sharer;
 import com.facebook.share.internal.LegacyNativeDialogParameters;
@@ -39,7 +26,8 @@ import com.facebook.share.internal.MessageDialogFeature;
 import com.facebook.share.internal.NativeDialogParameters;
 import com.facebook.share.internal.ShareContentValidation;
 import com.facebook.share.internal.ShareInternalUtility;
-import com.facebook.share.model.*;
+import com.facebook.share.model.ShareContent;
+import com.facebook.share.model.ShareLinkContent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,12 +36,10 @@ import java.util.List;
  *
  * <p>SUPPORTED SHARE TYPES - ShareLinkContent - ShareCameraEffectContent
  *
- * <p>UNSUPPORTED SHARE TYPES (DEPRECATED AUGUST 2018) - ShareOpenGraphContent - SharePhotoContent -
- * ShareVideoContent - Any other types that are not one of the four supported types listed above
+ * <p>UNSUPPORTED SHARE TYPES (DEPRECATED AUGUST 2018) - SharePhotoContent - ShareVideoContent - Any
+ * other types that are not one of the four supported types listed above
  */
-@Deprecated
-public final class MessageDialog extends FacebookDialogBase<ShareContent, Sharer.Result>
-    implements Sharer {
+public final class MessageDialog extends ShareDialog implements Sharer {
 
   private static final int DEFAULT_REQUEST_CODE =
       CallbackManagerImpl.RequestCodeOffset.Message.toRequestCode();
@@ -104,7 +90,7 @@ public final class MessageDialog extends FacebookDialogBase<ShareContent, Sharer
    * @param contentType Class of the intended {@link com.facebook.share.model.ShareContent} to send.
    * @return True if the specified content type can be shown via the dialog
    */
-  public static boolean canShow(Class<? extends ShareContent> contentType) {
+  public static boolean canShow(Class<? extends ShareContent<?, ?>> contentType) {
     DialogFeature feature = getFeature(contentType);
 
     return feature != null && DialogPresenter.canPresentNativeDialogWithFeature(feature);
@@ -199,7 +185,8 @@ public final class MessageDialog extends FacebookDialogBase<ShareContent, Sharer
   private class NativeHandler extends ModeHandler {
     @Override
     public boolean canShow(final ShareContent shareContent, boolean isBestEffort) {
-      return shareContent != null && MessageDialog.canShow(shareContent.getClass());
+      return shareContent != null
+          && MessageDialog.canShow((Class<? extends ShareContent<?, ?>>) shareContent.getClass());
     }
 
     @Override
@@ -236,12 +223,6 @@ public final class MessageDialog extends FacebookDialogBase<ShareContent, Sharer
   private static DialogFeature getFeature(Class<? extends ShareContent> type) {
     if (ShareLinkContent.class.isAssignableFrom(type)) {
       return MessageDialogFeature.MESSAGE_DIALOG;
-    } else if (ShareMessengerGenericTemplateContent.class.isAssignableFrom(type)) {
-      return MessageDialogFeature.MESSENGER_GENERIC_TEMPLATE;
-    } else if (ShareMessengerOpenGraphMusicTemplateContent.class.isAssignableFrom(type)) {
-      return MessageDialogFeature.MESSENGER_OPEN_GRAPH_MUSIC_TEMPLATE;
-    } else if (ShareMessengerMediaTemplateContent.class.isAssignableFrom(type)) {
-      return MessageDialogFeature.MESSENGER_MEDIA_TEMPLATE;
     }
     return null;
   }
@@ -255,8 +236,6 @@ public final class MessageDialog extends FacebookDialogBase<ShareContent, Sharer
       contentType = AnalyticsEvents.PARAMETER_SHARE_MESSENGER_GENERIC_TEMPLATE;
     } else if (dialogFeature == MessageDialogFeature.MESSENGER_MEDIA_TEMPLATE) {
       contentType = AnalyticsEvents.PARAMETER_SHARE_MESSENGER_MEDIA_TEMPLATE;
-    } else if (dialogFeature == MessageDialogFeature.MESSENGER_OPEN_GRAPH_MUSIC_TEMPLATE) {
-      contentType = AnalyticsEvents.PARAMETER_SHARE_MESSENGER_OPEN_GRAPH_MUSIC_TEMPLATE;
     } else {
       contentType = AnalyticsEvents.PARAMETER_SHARE_DIALOG_CONTENT_UNKNOWN;
     }

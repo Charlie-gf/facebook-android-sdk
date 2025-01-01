@@ -1,13 +1,22 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook
 
 import android.os.Bundle
 import com.facebook.internal.Utility
-import com.nhaarman.mockitokotlin2.whenever
+import org.assertj.core.api.Assertions.assertThat
 import org.json.JSONObject
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 
@@ -50,7 +59,7 @@ class LegacyTokenHelperTest : FacebookPowerMockTestCase() {
     FacebookTestUtility.assertSameCollectionContents(permissions, accessToken.permissions)
     Assert.assertEquals(token, accessToken.token)
     Assert.assertEquals(AccessTokenSource.FACEBOOK_APPLICATION_WEB, accessToken.source)
-    Assert.assertTrue(!accessToken.isExpired)
+    assertThat(accessToken.isExpired).isFalse
 
     val cache = AccessTokenTestHelper.toLegacyCacheBundle(accessToken)
     FacebookTestUtility.assertEqualContentsWithoutOrder(bundle, cache)

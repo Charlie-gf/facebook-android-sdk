@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.share.internal
@@ -54,22 +42,17 @@ import com.facebook.internal.NativeProtocol.getSuccessResultsFromIntent
 import com.facebook.internal.Utility.isContentUri
 import com.facebook.internal.Utility.isFileUri
 import com.facebook.internal.Utility.isNullOrEmpty
-import com.facebook.internal.Utility.isWebUri
-import com.facebook.internal.Utility.jsonArrayToSet
 import com.facebook.internal.Utility.putNonEmptyString
 import com.facebook.share.Sharer
-import com.facebook.share.internal.OpenGraphJSONUtility.toJSONObject
 import com.facebook.share.model.CameraEffectTextures
 import com.facebook.share.model.ShareCameraEffectContent
 import com.facebook.share.model.ShareMedia
 import com.facebook.share.model.ShareMediaContent
-import com.facebook.share.model.ShareOpenGraphContent
 import com.facebook.share.model.SharePhoto
 import com.facebook.share.model.SharePhotoContent
 import com.facebook.share.model.ShareStoryContent
 import com.facebook.share.model.ShareVideo
 import com.facebook.share.model.ShareVideoContent
-import com.facebook.share.widget.LikeView
 import java.io.File
 import java.io.FileNotFoundException
 import java.lang.Exception
@@ -191,12 +174,7 @@ object ShareInternalUtility {
         if (results != null) {
           val gesture = getNativeDialogCompletionGesture(results)
           if (gesture == null || "post".equals(gesture, ignoreCase = true)) {
-            val postId = getShareDialogPostId(results)
-            if (postId != null) {
-              invokeOnSuccessCallback(callback, postId)
-            } else {
-              invokeOnErrorCallback(callback, FacebookException(NativeProtocol.ERROR_UNKNOWN_ERROR))
-            }
+            invokeOnSuccessCallback(callback, getShareDialogPostId(results))
           } else if ("cancel".equals(gesture, ignoreCase = true)) {
             invokeOnCancelCallback(callback)
           } else {
@@ -301,74 +279,6 @@ object ShareInternalUtility {
 
   @Throws(JSONException::class)
   @JvmStatic
-  fun toJSONObjectForCall(callId: UUID, content: ShareOpenGraphContent): JSONObject? {
-    val action = content.action
-    val attachments = ArrayList<NativeAppCallAttachmentStore.Attachment>()
-    val actionJSON =
-        toJSONObject(
-            action,
-            OpenGraphJSONUtility.PhotoJSONProcessor { photo ->
-              val attachment = getAttachment(callId, photo) ?: return@PhotoJSONProcessor null
-              attachments.add(attachment)
-              val photoJSONObject = JSONObject()
-              try {
-                photoJSONObject.put(NativeProtocol.IMAGE_URL_KEY, attachment.attachmentUrl)
-                if (photo.userGenerated) {
-                  photoJSONObject.put(NativeProtocol.IMAGE_USER_GENERATED_KEY, true)
-                }
-              } catch (e: JSONException) {
-                throw FacebookException("Unable to attach images", e)
-              }
-              photoJSONObject
-            })
-            ?: return null
-    addAttachments(attachments)
-    // People and place tags must be moved from the share content to the open graph action
-    if (content.placeId != null) {
-      val placeTag = actionJSON.optString("place")
-
-      // Only if the place tag is already empty or null replace with the id from the
-      // share content
-      if (isNullOrEmpty(placeTag)) {
-        actionJSON.put("place", content.placeId)
-      }
-    }
-    if (content.peopleIds != null) {
-      val peopleTags = actionJSON.optJSONArray("tags")
-      val peopleIdSet: MutableSet<String> = hashSetOf()
-      if (peopleTags != null) {
-        peopleIdSet.addAll(jsonArrayToSet(peopleTags))
-      }
-      for (peopleId in content.peopleIds) {
-        peopleIdSet.add(peopleId)
-      }
-      actionJSON.put("tags", JSONArray(peopleIdSet))
-    }
-    return actionJSON
-  }
-
-  @Throws(JSONException::class)
-  @JvmStatic
-  fun toJSONObjectForWeb(shareOpenGraphContent: ShareOpenGraphContent): JSONObject? {
-    val action = shareOpenGraphContent.action
-    return toJSONObject(action) { photo ->
-      val photoUri = photo.imageUrl
-      if (!isWebUri(photoUri)) {
-        throw FacebookException(
-            "Only web images may be used in OG" + " objects shared via the web dialog")
-      }
-      val photoJSONObject = JSONObject()
-      try {
-        photoJSONObject.put(NativeProtocol.IMAGE_URL_KEY, photoUri.toString())
-      } catch (e: JSONException) {
-        throw FacebookException("Unable to attach images", e)
-      }
-      photoJSONObject
-    }
-  }
-
-  @Throws(JSONException::class)
-  @JvmStatic
   fun removeNamespacesFromOGJsonArray(jsonArray: JSONArray, requireNamespace: Boolean): JSONArray {
     val newArray = JSONArray()
     for (i in 0 until jsonArray.length()) {
@@ -446,7 +356,7 @@ object ShareInternalUtility {
 
   private fun getAttachment(
       callId: UUID,
-      medium: ShareMedia
+      medium: ShareMedia<*, *>
   ): NativeAppCallAttachmentStore.Attachment? {
     var bitmap: Bitmap? = null
     var uri: Uri? = null
@@ -598,28 +508,6 @@ object ShareInternalUtility {
     val parameters = Bundle(1)
     parameters.putParcelable(STAGING_PARAM, resourceWithMimeType)
     return GraphRequest(accessToken, MY_STAGING_RESOURCES, parameters, HttpMethod.POST, callback)
-  }
-
-  @JvmStatic
-  fun getMostSpecificObjectType(
-      objectType1: LikeView.ObjectType,
-      objectType2: LikeView.ObjectType
-  ): LikeView.ObjectType? {
-    if (objectType1 == objectType2) {
-      return objectType1
-    }
-    return when {
-      objectType1 == LikeView.ObjectType.UNKNOWN -> {
-        objectType2
-      }
-      objectType2 == LikeView.ObjectType.UNKNOWN -> {
-        objectType1
-      }
-      else -> {
-        // We can't have a PAGE and an OPEN_GRAPH type be compatible.
-        null
-      }
-    }
   }
 
   @JvmStatic

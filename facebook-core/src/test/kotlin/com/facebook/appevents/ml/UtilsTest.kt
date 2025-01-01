@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.appevents.ml
 
 import android.content.Context
@@ -5,7 +13,6 @@ import com.facebook.FacebookPowerMockTestCase
 import com.facebook.FacebookSdk
 import com.facebook.appevents.ml.TensorTestUtils.createModelFile
 import com.facebook.appevents.ml.TensorTestUtils.createTestTensor
-import com.nhaarman.mockitokotlin2.whenever
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
@@ -14,6 +21,7 @@ import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.mockito.kotlin.whenever
 import org.powermock.api.mockito.PowerMockito
 import org.powermock.core.classloader.annotations.PrepareForTest
 

@@ -1,3 +1,11 @@
+/*
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
+ *
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 package com.facebook.internal.security
 
 import android.content.Context
@@ -21,7 +29,8 @@ object CertificateUtil {
   fun getCertificateHash(ctx: Context): String {
     try {
       val signatures =
-          ctx.packageManager.getPackageInfo(ctx.packageName, PackageManager.GET_SIGNATURES)
+          ctx.packageManager
+              .getPackageInfo(ctx.packageName, PackageManager.GET_SIGNATURES)
               .signatures
       val sb = StringBuilder()
       val md = MessageDigest.getInstance("SHA1")

@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.share;
@@ -187,8 +175,6 @@ public final class ShareApi {
       this.sharePhotoContent((SharePhotoContent) shareContent, callback);
     } else if (shareContent instanceof ShareVideoContent) {
       this.shareVideoContent((ShareVideoContent) shareContent, callback);
-    } else if (shareContent instanceof ShareOpenGraphContent) {
-      this.shareOpenGraphContent((ShareOpenGraphContent) shareContent, callback);
     }
   }
 
@@ -222,57 +208,6 @@ public final class ShareApi {
     if (!Utility.isNullOrEmpty(shareContent.getRef())) {
       bundle.putString("ref", shareContent.getRef());
     }
-  }
-
-  private void shareOpenGraphContent(
-      final ShareOpenGraphContent openGraphContent,
-      final FacebookCallback<Sharer.Result> callback) {
-    // In order to create a new Open Graph action using a custom object that does not already
-    // exist (objectID or URL), you must first send a request to post the object and then
-    // another to post the action.  If a local image is supplied with the object or action, that
-    // must be staged first and then referenced by the staging URL that is returned by that
-    // request.
-    final GraphRequest.Callback requestCallback =
-        new GraphRequest.Callback() {
-          @Override
-          public void onCompleted(GraphResponse response) {
-            final JSONObject data = response.getJSONObject();
-            final String postId = (data == null ? null : data.optString("id"));
-            ShareInternalUtility.invokeCallbackWithResults(callback, postId, response);
-          }
-        };
-    final ShareOpenGraphAction action = openGraphContent.getAction();
-    final Bundle parameters = action.getBundle();
-    this.addCommonParameters(parameters, openGraphContent);
-    if (!Utility.isNullOrEmpty(this.getMessage())) {
-      parameters.putString("message", this.getMessage());
-    }
-
-    final CollectionMapper.OnMapperCompleteListener stageCallback =
-        new CollectionMapper.OnMapperCompleteListener() {
-          @Override
-          public void onComplete() {
-            try {
-              handleImagesOnAction(parameters);
-
-              new GraphRequest(
-                      AccessToken.getCurrentAccessToken(),
-                      getGraphPath(URLEncoder.encode(action.getActionType(), DEFAULT_CHARSET)),
-                      parameters,
-                      HttpMethod.POST,
-                      requestCallback)
-                  .executeAsync();
-            } catch (final UnsupportedEncodingException ex) {
-              ShareInternalUtility.invokeCallbackWithException(callback, ex);
-            }
-          }
-
-          @Override
-          public void onError(FacebookException exception) {
-            ShareInternalUtility.invokeCallbackWithException(callback, exception);
-          }
-        };
-    this.stageOpenGraphAction(parameters, stageCallback);
   }
 
   private static void handleImagesOnAction(Bundle parameters) {
@@ -411,9 +346,6 @@ public final class ShareApi {
     this.addCommonParameters(parameters, linkContent);
     parameters.putString("message", this.getMessage());
     parameters.putString("link", Utility.getUriString(linkContent.getContentUrl()));
-    parameters.putString("picture", Utility.getUriString(linkContent.getImageUrl()));
-    parameters.putString("name", linkContent.getContentTitle());
-    parameters.putString("description", linkContent.getContentDescription());
     parameters.putString("ref", linkContent.getRef());
     new GraphRequest(
             AccessToken.getCurrentAccessToken(),
@@ -528,8 +460,6 @@ public final class ShareApi {
               CollectionMapper.OnMapValueCompleteListener onMapValueCompleteListener) {
             if (value instanceof ArrayList) {
               stageArrayList((ArrayList) value, onMapValueCompleteListener);
-            } else if (value instanceof ShareOpenGraphObject) {
-              stageOpenGraphObject((ShareOpenGraphObject) value, onMapValueCompleteListener);
             } else if (value instanceof SharePhoto) {
               stagePhoto((SharePhoto) value, onMapValueCompleteListener);
             } else {
@@ -538,135 +468,6 @@ public final class ShareApi {
           }
         };
     CollectionMapper.iterate(collection, valueMapper, onCollectionValuesStagedListener);
-  }
-
-  private void stageOpenGraphAction(
-      final Bundle parameters,
-      final CollectionMapper.OnMapperCompleteListener onOpenGraphActionStagedListener) {
-    final CollectionMapper.Collection<String> collection =
-        new CollectionMapper.Collection<String>() {
-          @Override
-          public Iterator<String> keyIterator() {
-            return parameters.keySet().iterator();
-          }
-
-          @Override
-          public Object get(String key) {
-            return parameters.get(key);
-          }
-
-          @Override
-          public void set(
-              String key, Object value, CollectionMapper.OnErrorListener onErrorListener) {
-            if (!Utility.putJSONValueInBundle(parameters, key, value)) {
-              onErrorListener.onError(
-                  new FacebookException("Unexpected value: " + value.toString()));
-            }
-          }
-        };
-    stageCollectionValues(collection, onOpenGraphActionStagedListener);
-  }
-
-  private void stageOpenGraphObject(
-      final ShareOpenGraphObject object,
-      final CollectionMapper.OnMapValueCompleteListener onOpenGraphObjectStagedListener) {
-    String type = object.getString("type");
-    if (type == null) {
-      type = object.getString("og:type");
-    }
-
-    if (type == null) {
-      onOpenGraphObjectStagedListener.onError(
-          new FacebookException("Open Graph objects must contain a type value."));
-      return;
-    }
-    final JSONObject stagedObject = new JSONObject();
-    final CollectionMapper.Collection<String> collection =
-        new CollectionMapper.Collection<String>() {
-          @Override
-          public Iterator<String> keyIterator() {
-            return object.keySet().iterator();
-          }
-
-          @Override
-          public Object get(String key) {
-            return object.get(key);
-          }
-
-          @Override
-          public void set(
-              String key, Object value, CollectionMapper.OnErrorListener onErrorListener) {
-            try {
-              stagedObject.put(key, value);
-            } catch (final JSONException ex) {
-              String message = ex.getLocalizedMessage();
-              if (message == null) {
-                message = "Error staging object.";
-              }
-              onErrorListener.onError(new FacebookException(message));
-            }
-          }
-        };
-    final GraphRequest.Callback requestCallback =
-        new GraphRequest.Callback() {
-          @Override
-          public void onCompleted(GraphResponse response) {
-            final FacebookRequestError error = response.getError();
-            if (error != null) {
-              String message = error.getErrorMessage();
-              if (message == null) {
-                message = "Error staging Open Graph object.";
-              }
-              onOpenGraphObjectStagedListener.onError(
-                  new FacebookGraphResponseException(response, message));
-              return;
-            }
-            final JSONObject data = response.getJSONObject();
-            if (data == null) {
-              onOpenGraphObjectStagedListener.onError(
-                  new FacebookGraphResponseException(response, "Error staging Open Graph object."));
-              return;
-            }
-            final String stagedObjectId = data.optString("id");
-            if (stagedObjectId == null) {
-              onOpenGraphObjectStagedListener.onError(
-                  new FacebookGraphResponseException(response, "Error staging Open Graph object."));
-              return;
-            }
-            onOpenGraphObjectStagedListener.onComplete(stagedObjectId);
-          }
-        };
-    final String ogType = type;
-    final CollectionMapper.OnMapperCompleteListener onMapperCompleteListener =
-        new CollectionMapper.OnMapperCompleteListener() {
-          @Override
-          public void onComplete() {
-            final String objectString = stagedObject.toString();
-            final Bundle parameters = new Bundle();
-            parameters.putString("object", objectString);
-            try {
-              new GraphRequest(
-                      AccessToken.getCurrentAccessToken(),
-                      getGraphPath("objects/" + URLEncoder.encode(ogType, DEFAULT_CHARSET)),
-                      parameters,
-                      HttpMethod.POST,
-                      requestCallback)
-                  .executeAsync();
-            } catch (final UnsupportedEncodingException ex) {
-              String message = ex.getLocalizedMessage();
-              if (message == null) {
-                message = "Error staging Open Graph object.";
-              }
-              onOpenGraphObjectStagedListener.onError(new FacebookException(message));
-            }
-          }
-
-          @Override
-          public void onError(FacebookException exception) {
-            onOpenGraphObjectStagedListener.onError(exception);
-          }
-        };
-    stageCollectionValues(collection, onMapperCompleteListener);
   }
 
   private void stagePhoto(

@@ -1,21 +1,9 @@
 /*
- * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ * All rights reserved.
  *
- * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
- * copy, modify, and distribute this software in source code or binary form for use
- * in connection with the web services and APIs provided by Facebook.
- *
- * As with any software that integrates with the Facebook platform, your use of
- * this software is subject to the Facebook Developer Principles and Policies
- * [http://developers.facebook.com/policy/]. This copyright notice shall be
- * included in all copies or substantial portions of the software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * This source code is licensed under the license found in the
+ * LICENSE file in the root directory of this source tree.
  */
 
 package com.facebook.internal
@@ -33,6 +21,7 @@ import android.os.Parcel
 import android.os.StatFs
 import android.provider.OpenableColumns
 import android.telephony.TelephonyManager
+import android.text.TextUtils
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Display
@@ -46,6 +35,7 @@ import com.facebook.FacebookSdk
 import com.facebook.GraphRequest
 import com.facebook.HttpMethod
 import com.facebook.appevents.UserDataStore
+import com.facebook.appevents.internal.AppLinkManager
 import com.facebook.internal.ProfileInformationCache.getProfileInformation
 import com.facebook.internal.ProfileInformationCache.putProfileInformation
 import com.facebook.internal.instrument.crashshield.AutoHandleExceptions
@@ -103,10 +93,12 @@ object Utility {
   private var numCPUCores = 0
   private var timestampOfLastCheck: Long = -1
   private var totalExternalStorageGB: Long = -1
-  private var availableExternalStorageGB: Long = -1
+  var availableExternalStorageGB: Long = -1
   private var deviceTimezoneAbbreviation = ""
-  private var deviceTimeZoneName = ""
-  private var carrierName = NO_CARRIER
+  var deviceTimeZoneName = ""
+  var carrierName = NO_CARRIER
+  var versionName: String? = ""
+  var locale: Locale? = null
 
   // https://stackoverflow.com/questions/39784415/how-to-detect-programmatically-if-android-app-is-running-in-chrome-book-or-in
   private const val ARC_DEVICE_PATTERN = ".+_cheets|cheets_.+"
@@ -115,7 +107,7 @@ object Utility {
   private const val INSTAGRAM_PROFILE_FIELDS = "id,name,profile_picture"
 
   @JvmStatic
-  fun <T> isNullOrEmpty(c: Collection<T>?): Boolean {
+  fun isNullOrEmpty(c: Collection<*>?): Boolean {
     return c == null || c.isEmpty()
   }
 
@@ -243,15 +235,7 @@ object Utility {
   @JvmStatic
   fun putCommaSeparatedStringList(b: Bundle, key: String?, list: List<String?>?) {
     if (list != null) {
-      val builder = StringBuilder()
-      for (string in list) {
-        builder.append(string)
-        builder.append(",")
-      }
-      var commaSeparated: String? = ""
-      if (builder.isNotEmpty()) {
-        commaSeparated = builder.substring(0, builder.length - 1)
-      }
+      val commaSeparated = TextUtils.join(",", list)
       b.putString(key, commaSeparated)
     }
   }
@@ -349,6 +333,19 @@ object Utility {
     return map
   }
 
+  @JvmStatic
+  fun convertJSONArrayToHashSet(jsonArray: JSONArray?): HashSet<String>? {
+      if (jsonArray == null || jsonArray?.length() == 0) {
+          return null
+      }
+      val hashSet: HashSet<String> = HashSet()
+      for (i in 0 until jsonArray.length()) {
+          val element: String = jsonArray.getString(i)
+          hashSet.add(element)
+      }
+      return hashSet
+  }
+    
   @JvmStatic
   fun convertJSONArrayToList(jsonArray: JSONArray): List<String> {
     return try {
@@ -473,10 +470,14 @@ object Utility {
     // setCookie acts differently when trying to expire cookies between builds of Android that
     // are using Chromium HTTP stack and those that are not. Using both of these domains to
     // ensure it works on both.
-    clearCookiesForDomain(context, "facebook.com")
-    clearCookiesForDomain(context, ".facebook.com")
-    clearCookiesForDomain(context, "https://facebook.com")
-    clearCookiesForDomain(context, "https://.facebook.com")
+    try {
+      clearCookiesForDomain(context, "facebook.com")
+      clearCookiesForDomain(context, ".facebook.com")
+      clearCookiesForDomain(context, "https://facebook.com")
+      clearCookiesForDomain(context, "https://.facebook.com")
+    } catch (e: Exception) {
+      // An exception is thrown during cookie clearance. It's likely that webview is not available.
+    }
   }
 
   @JvmStatic
@@ -520,25 +521,6 @@ object Utility {
   @JvmStatic
   fun tryGetJSONArrayFromResponse(response: JSONObject?, propertyKey: String?): JSONArray? {
     return response?.optJSONArray(propertyKey)
-  }
-
-  @Deprecated(
-      "This method should not be used in Kotlin",
-      ReplaceWith("directoryOrFile?.deleteRecursively()"))
-  @JvmStatic
-  fun deleteDirectory(directoryOrFile: File?) {
-    if (directoryOrFile === null || !directoryOrFile.exists()) {
-      return
-    }
-    if (directoryOrFile.isDirectory) {
-      val children = directoryOrFile.listFiles()
-      if (children != null) {
-        for (child in children) {
-          deleteDirectory(child)
-        }
-      }
-    }
-    directoryOrFile.delete()
   }
 
   @Throws(JSONException::class)
@@ -637,7 +619,11 @@ object Utility {
         params.put("installer_package", attributionIdentifiers.androidInstallerPackage)
       }
     }
-  } /* no op */
+    val campaignIDs = AppLinkManager.getInstance()?.getInfo(AppLinkManager.CAMPAIGN_IDS_KEY)
+    if (campaignIDs != null) {
+      params.put("campaign_ids", campaignIDs)
+    }
+  }
 
   /**
    * Get the app version of the app, as specified by the manifest.
@@ -670,7 +656,6 @@ object Utility {
     // Application Manifest info:
     val pkgName = appContext.packageName
     var versionCode = -1
-    var versionName: String? = ""
     try {
       val pi = appContext.packageManager.getPackageInfo(pkgName, 0) ?: return
       versionCode = pi.versionCode
@@ -689,13 +674,13 @@ object Utility {
     extraInfoArray.put(Build.MODEL)
 
     // Locale
-    val locale =
+    locale =
         try {
           appContext.resources.configuration.locale
         } catch (e: Exception) {
           Locale.getDefault()
         }
-    extraInfoArray.put(locale.language + "_" + locale.country)
+    extraInfoArray.put((locale?.language ?: "") + "_" + (locale?.country ?: ""))
 
     // Time zone
     extraInfoArray.put(deviceTimezoneAbbreviation)
@@ -884,6 +869,37 @@ object Utility {
     val map: MutableMap<String?, String?> = HashMap()
     for (i in 0 until size) {
       map[parcel.readString()] = parcel.readString()
+    }
+    return map
+  }
+
+  @JvmStatic
+  fun writeNonnullStringMapToParcel(parcel: Parcel, map: Map<String, String>?) {
+    if (map == null) {
+      // 0 is for empty map, -1 to indicate null
+      parcel.writeInt(-1)
+    } else {
+      parcel.writeInt(map.size)
+      for ((key, value) in map) {
+        parcel.writeString(key)
+        parcel.writeString(value)
+      }
+    }
+  }
+
+  @JvmStatic
+  fun readNonnullStringMapFromParcel(parcel: Parcel): Map<String, String>? {
+    val size = parcel.readInt()
+    if (size < 0) {
+      return null
+    }
+    val map: MutableMap<String, String> = HashMap()
+    for (i in 0 until size) {
+      val key = parcel.readString()
+      val value = parcel.readString()
+      if (key != null && value != null) {
+        map[key] = value
+      }
     }
     return map
   }
@@ -1113,32 +1129,6 @@ object Utility {
     return !(connectionResult !is Int || connectionResult != 0)
   }
 
-  @Throws(JSONException::class)
-  @JvmStatic
-  fun handlePermissionResponse(result: JSONObject): PermissionsLists {
-    val permissions = result.getJSONObject("permissions")
-    val data = permissions.getJSONArray("data")
-    val grantedPermissions: MutableList<String> = ArrayList(data.length())
-    val declinedPermissions: MutableList<String> = ArrayList(data.length())
-    val expiredPermissions: MutableList<String> = ArrayList(data.length())
-    for (i in 0 until data.length()) {
-      val obj = data.optJSONObject(i)
-      val permission = obj.optString("permission")
-      if (permission == null || permission == "installed") {
-        continue
-      }
-      val status = obj.optString("status") ?: continue
-      if (status == "granted") {
-        grantedPermissions.add(permission)
-      } else if (status == "declined") {
-        declinedPermissions.add(permission)
-      } else if (status == "expired") {
-        expiredPermissions.add(permission)
-      }
-    }
-    return PermissionsLists(grantedPermissions, declinedPermissions, expiredPermissions)
-  }
-
   @JvmStatic
   fun generateRandomString(length: Int): String {
     val r = Random()
@@ -1289,14 +1279,4 @@ object Utility {
     fun onSuccess(userInfo: JSONObject?)
     fun onFailure(error: FacebookException?)
   }
-
-  /**
-   * Internal helper class that is used to hold three different permission lists (granted, declined
-   * and expired)
-   */
-  class PermissionsLists(
-      var grantedPermissions: List<String>,
-      var declinedPermissions: List<String>,
-      var expiredPermissions: List<String>
-  )
 }
